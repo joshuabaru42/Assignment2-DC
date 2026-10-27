@@ -16,6 +16,10 @@ namespace BankService.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Account>()
+                .Property(a => a.Balance)
+                .HasColumnType("NUMERIC");
+
+            modelBuilder.Entity<Account>()
                 .HasOne(a => a.User)
                 .WithMany(u => u.Accounts)
                 .HasForeignKey(a => a.UserId)
@@ -26,6 +30,10 @@ namespace BankService.Data
                 .WithMany(u => u.SentTransactions)
                 .HasForeignKey(t => t.AccountId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Transaction>()
+                .Property(t => t.Amount)
+                .HasColumnType("NUMERIC");
 
             modelBuilder.Entity<Transaction>()
                 .HasOne(t => t.TargetAccount)

@@ -11,7 +11,6 @@ namespace BankService.Models
         [Required]
         public string AccountNumber { get; set; }
 
-        [Column(TypeName = "decimal(18, 2")]
         public decimal Balance { get; set; }
         public bool IsActive { get; set; } = true;
 

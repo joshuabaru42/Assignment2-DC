@@ -9,8 +9,6 @@ namespace BankService.Models
         [Key]
         public int Id { get; set; }
         public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
-
-        [Column(TypeName = "decimal(18, 2")]
         public decimal Amount { get; set; }
         public string Type { get; set; } // Deposit, withdrawal and transfer
         public string Description { get; set; }
