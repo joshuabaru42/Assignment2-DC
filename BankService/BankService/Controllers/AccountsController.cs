@@ -20,36 +20,70 @@ namespace BankService.Controllers
             _context = context;
         }
 
+        // DTO for Account creation
+        public class AccountCreateDto
+        {
+            public int UserId { get; set;  }
+            public string AccountNumber { get; set; } = string.Empty;
+        }
+
+        //DTO for Account responses
+        public class AccountResponseDto
+        {
+            public int Id { get; set; }
+            public string AccountNumber { get; set; } = string.Empty;
+            public decimal Balance { get; set; }
+            public bool IsActive { get; set; }
+            public int UserId { get; set; }
+        }
+
         // GET: api/acoounts
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Account>>> GetAccounts()
         {
-            return await _context.Accounts
-                .Include(a => a.User)
-                .ToListAsync();
+            var accounts = await _context.Accounts.ToListAsync();
+            var responseDtos = accounts.Select(a => new AccountResponseDto
+            {
+                Id = a.Id,
+                AccountNumber = a.AccountNumber,
+                Balance = a.Balance,
+                IsActive = a.IsActive,
+                UserId = a.UserId
+            });
+
+            return Ok(responseDtos);
         }
 
         // GET: api/accounts/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Account>> GetAccount(int id)
+        public async Task<ActionResult<AccountResponseDto>> GetAccount(int id)
         {
-            var account = await _context.Accounts
-                .Include(a => a.User)
-                .FirstOrDefaultAsync(a => a.Id == id);
+            var account = await _context.Accounts.FindAsync(id);
 
-            if(account == null)
+            if (account == null)
             {
                 return NotFound(new { message = "Account not found"});
             }
 
-            return account;
+            var responseDtos = new AccountResponseDto
+            {
+                Id = account.Id,
+                AccountNumber = account.AccountNumber,
+                Balance = account.Balance,
+                IsActive = account.IsActive,
+                UserId = account.UserId
+            };
+
+            return Ok(responseDtos);
+
+
         }
 
         // POST: api/accounts
         [HttpPost]
-        public async Task<ActionResult<Account>> CreateAccount([FromBody] Account account)
+        public async Task<ActionResult<AccountResponseDto>> CreateAccount([FromBody] AccountCreateDto request)
         {
-            var userExists = await _context.Users.AnyAsync(u => u.Id == account.UserId);
+            var userExists = await _context.Users.AnyAsync(u => u.Id == request.UserId);
 
             if (!userExists)
             {
@@ -57,10 +91,28 @@ namespace BankService.Controllers
 
             }
 
+            var account = new Account
+            {
+                UserId = request.UserId,
+                AccountNumber = request.AccountNumber,
+                Balance = 0.00m,
+                IsActive = true,
+            };
+
             _context.Accounts.Add(account);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetAccount), new { id = account.Id}, account);
+            var responseDto = new AccountResponseDto
+            {
+                Id = account.Id, 
+                AccountNumber= account.AccountNumber,
+                Balance= account.Balance,
+                IsActive= account.IsActive,
+                UserId= account.UserId
+            
+            };
+
+            return CreatedAtAction(nameof(GetAccount), new { id = account.Id }, responseDto);
         }
 
         // PATCH: api/accounts/5/deactivate
@@ -85,4 +137,6 @@ namespace BankService.Controllers
             return NoContent();
         }
     }
+
+    
 }

@@ -23,6 +23,7 @@ namespace BankService.Controllers
         {
             public int AccountId { get; set; }
             public decimal Amount { get; set; }
+            public string? Description { get; set; }
 
         }
 
@@ -32,6 +33,7 @@ namespace BankService.Controllers
             public int SourceAccountId { get; set; }
             public int DestinationAccountId { get; set; }
             public decimal Amount { get; set; }
+            public string? Description { get; set; }
         }
 
         // POST: api/transactions/deposit
@@ -49,6 +51,11 @@ namespace BankService.Controllers
                 return NotFound(new { message = "Account not found. "});
             }
 
+            if (!account.IsActive)
+            {
+                return UnprocessableEntity(new { message = "Cannot deposit into an inactive account. " });
+            }
+
             account.Balance += request.Amount;
 
             var transaction = new Transaction
@@ -56,6 +63,7 @@ namespace BankService.Controllers
                 AccountId = account.Id,
                 Amount = request.Amount,
                 Type = "Deposit",
+                Description = request.Description ?? "Deposit",
                 TimeStamp = DateTime.UtcNow
             };
 
@@ -75,6 +83,11 @@ namespace BankService.Controllers
             }
 
             var account = await _context.Accounts.FindAsync(request.AccountId);
+            if (!account.IsActive)
+            {
+                return UnprocessableEntity(new { message = "Cannot withdraw from an inactive account. " });
+            }
+
             if (account == null)
             {
                 return NotFound(new { message = "Account not found. " });
@@ -92,6 +105,7 @@ namespace BankService.Controllers
                 AccountId = account.Id,
                 Amount = request.Amount,
                 Type = "Withdrawal",
+                Description = request.Description ?? "Withdrawal",
                 TimeStamp = DateTime.UtcNow
             };
 
@@ -126,6 +140,11 @@ namespace BankService.Controllers
                     return NotFound(new { message = "Source or destination account not found." });
                 }
 
+                if (!sourceAccount.IsActive || !destAccount.IsActive)
+                {
+                    return UnprocessableEntity(new { message = "Cannot transfer between inactive accounts." });
+                }
+
                 if (sourceAccount.Balance < request.Amount)
                 {
                     return UnprocessableEntity(new { message = "Insufficient funds in the source account." });
@@ -139,17 +158,10 @@ namespace BankService.Controllers
                 {
 
                     AccountId = sourceAccount.Id,
+                    TargetAccountId = destAccount.Id,
                     Amount = request.Amount,
-                    Type = "Transfer-Out",
-                    TimeStamp = DateTime.UtcNow
-                });
-
-                _context.Transactions.Add(new Transaction
-                {
-
-                    AccountId = destAccount.Id,
-                    Amount = request.Amount,
-                    Type = "Transfer-In",
+                    Type = "Transfer",
+                    Description = request.Description ?? $"Transfer from Account {sourceAccount.Id} to {destAccount.Id}",
                     TimeStamp = DateTime.UtcNow
                 });
 
