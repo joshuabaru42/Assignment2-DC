@@ -101,7 +101,7 @@ namespace BankService.Controllers
             return Ok(new
             {
                 message = "Login successful.",
-                id = user.id,
+                id = user.Id,
                 username = user.Username,
                 role = user.Role
             });

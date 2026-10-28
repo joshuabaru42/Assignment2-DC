@@ -121,7 +121,7 @@ namespace BankService.Controllers
             // exposing the password hash or salt.
             return CreatedAtAction(
                 nameof(GetById),
-                new { id = user.id },
+                new { id = user.Id },
                 ToResponse(user));
         }
 
@@ -364,7 +364,7 @@ namespace BankService.Controllers
             // another user, excluding the current user.
             bool emailExists = await _context.Users
                 .AnyAsync(u =>
-                    u.id != id &&
+                    u.Id != id &&
                     u.Email.ToLower() == normalizedEmail);
 
             if (emailExists)
@@ -771,7 +771,7 @@ namespace BankService.Controllers
             // STEP 2 - Retrieve the user.
             var user = await _context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.id == id);
+                .FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
             {
@@ -878,7 +878,7 @@ namespace BankService.Controllers
         {
             return new UserResponseDto
             {
-                Id = user.id,
+                Id = user.Id,
                 Username = user.Username,
                 Name = user.Name,
                 Email = user.Email,

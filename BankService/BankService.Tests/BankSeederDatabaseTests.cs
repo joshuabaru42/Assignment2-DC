@@ -2,7 +2,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using BankService.Models;
 
 namespace BankService.Tests
 {
@@ -52,7 +51,7 @@ namespace BankService.Tests
             // STEP 2 - Create the database schema
             // and run the actual seeder.
 
-            await using (var context = new SeederTestBankContext(options))
+            await using (var context = new BankContext(options))
             {
                 await context.Database.EnsureCreatedAsync();
                 await BankSeeder.SeedAsync(context);
@@ -62,7 +61,7 @@ namespace BankService.Tests
             // a NEW DbContext, rather than relying on
             // entities tracked during insertion.
 
-            await using (var context = new SeederTestBankContext(options))
+            await using (var context = new BankContext(options))
             {
                 var users = await context.Users
                     .AsNoTracking()
@@ -84,7 +83,7 @@ namespace BankService.Tests
                 Assert.AreEqual(500, transactions.Count);
 
                 // Verify valid user-account relationships.
-                var userIds = users.Select(u => u.id).ToHashSet();
+                var userIds = users.Select(u => u.Id).ToHashSet();
                 var accountIds =
                     accounts.Select(a => a.Id).ToHashSet();
 
@@ -167,7 +166,7 @@ namespace BankService.Tests
             // STEP 5 - Run the seeder a second time.
             // Existing data must not be duplicated.
 
-            await using (var context = new SeederTestBankContext(options))
+            await using (var context = new BankContext(options))
             {
                 await BankSeeder.SeedAsync(context);
 
@@ -205,33 +204,5 @@ namespace BankService.Tests
         // Microsoft Learn - Creating and Configuring
         // a Model in Entity Framework Core
         // https://learn.microsoft.com/en-us/ef/core/modeling/
-
-        private sealed class SeederTestBankContext : BankContext
-        {
-            public SeederTestBankContext(
-                DbContextOptions<BankContext> options)
-                : base(options)
-            {
-            }
-
-            protected override void OnModelCreating(
-                ModelBuilder modelBuilder)
-            {
-                // Retain the existing account and
-                // transaction relationships.
-                base.OnModelCreating(modelBuilder);
-
-                // Override the malformed type annotations
-                // for this test context only.
-                modelBuilder.Entity<Account>()
-                    .Property(a => a.Balance)
-                    .HasColumnType("decimal(18, 2)");
-
-                modelBuilder.Entity<Transaction>()
-                    .Property(t => t.Amount)
-                    .HasColumnType("decimal(18, 2)");
-            }
-        }
-
     }
 }
