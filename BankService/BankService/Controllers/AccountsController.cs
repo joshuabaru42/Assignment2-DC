@@ -106,12 +106,11 @@ namespace BankService.Controllers
 
             var responseDto = new AccountResponseDto
             {
-                Id = account.Id, 
+                Id = account.Id,
                 AccountNumber= account.AccountNumber,
                 Balance= account.Balance,
                 IsActive= account.IsActive,
                 UserId= account.UserId
-            
             };
 
             return CreatedAtAction(nameof(GetAccount), new { id = account.Id }, responseDto);
@@ -143,5 +142,4 @@ namespace BankService.Controllers
         }
     }
 
-    
 }

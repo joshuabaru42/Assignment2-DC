@@ -75,18 +75,33 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Member 3: Keep the SQLite schema and required seed data current at application startup.
+
+// =====================================================
+// MEMBER 1 + MEMBER 3 - DATABASE STARTUP INTEGRATION
+// =====================================================
+// Member 3:
+// Applies EF Core migrations when the application starts.
+//
+// Member 1:
+// Generates and saves the required 20 users,
+// 30 accounts and 500 transactions.
+//
+// The seeder checks for existing data to prevent
+// duplicate records during subsequent startups.
+// =====================================================
+
 await using (var scope = app.Services.CreateAsyncScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<BankContext>();
-    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
-    var logger = scope.ServiceProvider
-        .GetRequiredService<ILoggerFactory>()
-        .CreateLogger("BankSeeder");
+    var context = scope.ServiceProvider
+        .GetRequiredService<BankContext>();
 
+    // Member 3: Apply outstanding database migrations.
     await context.Database.MigrateAsync();
-    await BankSeeder.SeedAsync(context, passwordHasher, app.Configuration, logger);
+
+    // Member 1: Generate initial banking data if needed.
+    await BankSeeder.SeedAsync(context);
 }
+
 
 if (app.Environment.IsDevelopment())
 {
