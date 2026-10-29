@@ -17,14 +17,25 @@ namespace BankService.Models
         public string PasswordSalt { get; set; }
         public string Role { get; set; } = "Customer"; // Customer or Admin
 
+
         // =====================================================
         // MEMBER 1 - REQUIREMENT 3: USER DEACTIVATION
         // =====================================================
         // Source: Assignment 2 Part A, Requirement 3.
+        //
+        // Member 1:
         // Indicates whether the user's profile is active.
-        // Default is true for newly created users.
-        // Deactivation keeps the user record and account history.
+        // Defaults to true for newly created users.
+        // Deactivation preserves the user record and its
+        // associated banking history.
+        //
+        // Member 3:
+        // Uses this property to prevent deactivated users
+        // from accessing protected functionality.
+        // =====================================================
+
         public bool IsActive { get; set; } = true;
+
 
         public ICollection<Account> Accounts { get; set; } = new List<Account>();
     }

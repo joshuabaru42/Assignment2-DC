@@ -125,19 +125,54 @@ namespace BankService.Controllers
                 ToResponse(user));
         }
 
+
         // -------------------------------------------------
-        // STEP 2 - RETRIEVE A USER BY ID
+        // MEMBER 1 - REQUIREMENT 3: SECURE PROFILE RETRIEVAL
         // -------------------------------------------------
         // GET: /api/users/{id}
         //
-        // Provides a valid retrieval endpoint for the
-        // Location header returned during registration.
+        // Integration with Member 3's cookie authentication.
+        //
+        // Security:
+        // - Require an authenticated identity.
+        // - Customers may retrieve only their own profile.
+        // - Administrators may retrieve other user profiles.
+        // - Return only UserResponseDto (no password data).
+        //
+        // Reference:
+        // Microsoft Learn - Claims-based authorization
+        // https://learn.microsoft.com/en-us/aspnet/core/security/authorization/claims
+        // -------------------------------------------------
 
+        [Microsoft.AspNetCore.Authorization.Authorize]
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<UserResponseDto>> GetById(
-            int id)
+        public async Task<ActionResult<UserResponseDto>> GetById(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            // STEP 1 - Identify the authenticated user.
+            string? authenticatedId =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            bool isOwner =
+                int.TryParse(authenticatedId, out int currentUserId)
+                && currentUserId == id;
+
+            bool isAdmin = User.IsInRole("Admin");
+
+            // STEP 2 - Enforce ownership or administrator access.
+            if (!isOwner && !isAdmin)
+            {
+                return StatusCode(403, new
+                {
+                    error = "FORBIDDEN",
+                    message = "You cannot access this profile.",
+                    details = (object?)null
+                });
+            }
+
+            // STEP 3 - Retrieve the requested user.
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
             {
@@ -149,44 +184,51 @@ namespace BankService.Controllers
                 });
             }
 
+            // STEP 4 - Return only safe profile information.
             return Ok(ToResponse(user));
         }
 
-        
+
+
+
         // -------------------------------------------------
-        // MEMBER 1 - REQUIREMENT 3
-        // STEP 4 - RETRIEVE USER BY USERNAME
+        // MEMBER 1 - REQUIREMENT 3: SECURE USERNAME LOOKUP
         // -------------------------------------------------
-        //
         // GET: /api/users/by-username/{username}
         //
-        // Assignment reference:
-        // Assignment 2 Part A - Requirement 3.
+        // Security:
+        // - Requires a valid authentication cookie.
+        // - Customers may retrieve only their own profile.
+        // - Administrators may retrieve other user profiles.
         //
-        // Lecturer references:
-        // WebAP (2).pdf - REST GET requests and Controllers.
-        // Database-DC-Web (2).pdf - Database queries.
-        //
-        // Design:
-        // Perform a case-insensitive username search.
-        // Return only the safe UserResponseDto.
+        // Reference:
+        // Microsoft Learn - Claims-based authorization
+        // https://learn.microsoft.com/en-us/aspnet/core/security/authorization/claims
+        // -------------------------------------------------
 
+        [Microsoft.AspNetCore.Authorization.Authorize]
         [HttpGet("by-username/{username}")]
         public async Task<ActionResult<UserResponseDto>> GetByUsername(
             string username)
         {
-            // Remove surrounding spaces and normalise case.
+            // STEP 1 - Identify the authenticated requester.
+            string? authenticatedId =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            bool hasValidId =
+                int.TryParse(authenticatedId, out int currentUserId);
+
+            bool isAdmin = User.IsInRole("Admin");
+
+            // STEP 2 - Normalise username and find the user.
             string normalizedUsername =
                 username.Trim().ToLowerInvariant();
 
-            // Search SQLite through Entity Framework Core.
-            // AsNoTracking improves read-only query efficiency.
             var user = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     u => u.Username.ToLower() == normalizedUsername);
 
-            // Return a standard error if no user is found.
             if (user == null)
             {
                 return NotFound(new
@@ -197,33 +239,46 @@ namespace BankService.Controllers
                 });
             }
 
-            // Exclude PasswordHash and PasswordSalt.
+            // STEP 3 - Check profile ownership or Admin role.
+            bool isOwner =
+                hasValidId && currentUserId == user.Id;
+
+            if (!isOwner && !isAdmin)
+            {
+                return StatusCode(403, new
+                {
+                    error = "FORBIDDEN",
+                    message = "You cannot access this profile.",
+                    details = (object?)null
+                });
+            }
+
+            // STEP 4 - Return only safe profile information.
             return Ok(ToResponse(user));
         }
 
-        // -------------------------------------------------
-        // MEMBER 1 - REQUIREMENT 3
-        // STEP 5 - RETRIEVE USER BY EMAIL
-        // -------------------------------------------------
-        //
-        // GET: /api/users/by-email?email=example@example.com
-        //
-        // Assignment reference:
-        // Assignment 2 Part A - Requirement 3.
-        //
-        // Lecturer references:
-        // WebAP (2).pdf - REST GET requests and Controllers.
-        // Database-DC-Web (2).pdf - Database queries.
-        //
-        // Design:
-        // Accept email as a query parameter.
-        // Return only the safe UserResponseDto.
 
+        // -------------------------------------------------
+        // MEMBER 1 - REQUIREMENT 3: SECURE EMAIL LOOKUP
+        // -------------------------------------------------
+        // GET: /api/users/by-email?email=...
+        //
+        // Security:
+        // - Requires an authenticated user.
+        // - Customers may retrieve only their own profile.
+        // - Administrators may retrieve other profiles.
+        //
+        // Reference:
+        // Microsoft Learn - Claims-based authorization
+        // https://learn.microsoft.com/en-us/aspnet/core/security/authorization/claims
+        // -------------------------------------------------
+
+        [Microsoft.AspNetCore.Authorization.Authorize]
         [HttpGet("by-email")]
         public async Task<ActionResult<UserResponseDto>> GetByEmail(
             [FromQuery] string? email)
         {
-            // Check that an email address was provided.
+            // STEP 1 - Validate the email parameter.
             if (string.IsNullOrWhiteSpace(email))
             {
                 return BadRequest(new
@@ -237,11 +292,19 @@ namespace BankService.Controllers
                 });
             }
 
-            // Normalise email for case-insensitive lookup.
+            // STEP 2 - Identify the authenticated requester.
+            string? authenticatedId =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            bool hasValidId =
+                int.TryParse(authenticatedId, out int currentUserId);
+
+            bool isAdmin = User.IsInRole("Admin");
+
+            // STEP 3 - Find the user by normalized email.
             string normalizedEmail =
                 email.Trim().ToLowerInvariant();
 
-            // Find the matching user in SQLite.
             var user = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
@@ -257,9 +320,24 @@ namespace BankService.Controllers
                 });
             }
 
-            // Return profile details without password data.
+            // STEP 4 - Check ownership or administrator role.
+            bool isOwner =
+                hasValidId && currentUserId == user.Id;
+
+            if (!isOwner && !isAdmin)
+            {
+                return StatusCode(403, new
+                {
+                    error = "FORBIDDEN",
+                    message = "You cannot access this profile.",
+                    details = (object?)null
+                });
+            }
+
+            // STEP 5 - Return safe profile information.
             return Ok(ToResponse(user));
         }
+
 
 
         // -------------------------------------------------

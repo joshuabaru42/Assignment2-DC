@@ -313,7 +313,7 @@ namespace BankService.Data
                 // DEPOSIT
                 // -----------------------------------------
                 if (type == "Deposit")
-                {
+        {
                     source.Balance += amount;
                 }
 
@@ -321,9 +321,9 @@ namespace BankService.Data
                 // WITHDRAWAL
                 // -----------------------------------------
                 else if (type == "Withdrawal")
-                {
+            {
                     source.Balance -= amount;
-                }
+            }
 
                 // -----------------------------------------
                 // TRANSFER
@@ -335,7 +335,7 @@ namespace BankService.Data
                         random.Next(accounts.Count - 1);
 
                     if (targetIndex >= sourceIndex)
-                    {
+            {
                         targetIndex++;
                     }
 
@@ -346,7 +346,7 @@ namespace BankService.Data
 
                     // The same amount enters the target.
                     target.Balance += amount;
-                }
+            }
 
                 // -----------------------------------------
                 // CREATE TRANSACTION RECORD
@@ -358,7 +358,7 @@ namespace BankService.Data
                     Type = type,
 
                     Description = type switch
-                    {
+            {
                         "Deposit" => "Demo deposit",
                         "Withdrawal" => "Demo withdrawal",
                         "Transfer" => "Demo bank transfer",
@@ -366,7 +366,7 @@ namespace BankService.Data
                     },
 
                     Account = source
-                };
+            };
 
                 // Only transfers have a target account.
                 if (target != null)
@@ -778,15 +778,19 @@ namespace BankService.Data
             context.Accounts.AddRange(accounts);
             context.Transactions.AddRange(transactions);
 
-            // ---------------------------------------------
-            // STEP 5E - SAVE ALL RECORDS
-            // ---------------------------------------------
+
+            // =====================================================
+            // MEMBER 1 + MEMBER 3 - SEEDER INTEGRATION CORRECTION
+            // =====================================================
+            // Member 1's seeder already registers the complete
+            // dataset (20 users, 30 accounts and 500 transactions)
+            // using AddRange() earlier in this method.
             //
-            // If the database rejects any operation,
-            // the transaction is not committed.
+            // The separate 'admin' variable belonged to Member 3's
+            // original seeder and does not exist in this implementation.
             //
-            // Disposing an uncommitted transaction
-            // rolls back its database changes.
+            // SaveChangesAsync() persists all registered entities.
+            // =====================================================
 
             await context.SaveChangesAsync();
 

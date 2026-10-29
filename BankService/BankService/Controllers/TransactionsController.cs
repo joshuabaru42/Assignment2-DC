@@ -9,7 +9,7 @@ namespace BankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TransactionsController : ControllerBase
+    public class TransactionsController : ApiControllerBase
     {
         private readonly BankContext _context;
 
@@ -42,18 +42,24 @@ namespace BankService.Controllers
         {
             if (request.Amount <= 0)
             {
-                return UnprocessableEntity(new { message = " Deposit amoout must be greater than zero." });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Invalid deposit amount",
+                    "Deposit amount must be greater than zero.");
             }
 
             var account = await _context.Accounts.FindAsync(request.AccountId);
             if (account == null)
             {
-                return NotFound(new { message = "Account not found. "});
+                return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
             }
 
             if (!account.IsActive)
             {
-                return UnprocessableEntity(new { message = "Cannot deposit into an inactive account. " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Account is inactive",
+                    "Cannot deposit into an inactive account.");
             }
 
             account.Balance += request.Amount;
@@ -73,95 +79,76 @@ namespace BankService.Controllers
             return Ok(new { message = "Deposit successful", newBalance = account.Balance, transaction });
         }
 
+
         // POST: api/transactions/withdraw
         [HttpPost("withdraw")]
-
-        public async Task<IActionResult> Withdraw([FromBody] TransactionRequestDto request)
+        public async Task<IActionResult> Withdraw(
+            [FromBody] TransactionRequestDto request)
         {
-            // STEP 1 - Validate withdrawal amount.
+            // STEP 1 - Validate the withdrawal amount.
             if (request.Amount <= 0)
             {
-                return UnprocessableEntity(new
-                {
-                    message = "Withdrawal amount must be greater than zero."
-                });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Invalid withdrawal amount",
+                    "Withdrawal amount must be greater than zero.");
             }
 
-            // Retrieve the requested bank account.
+            // Retrieve the requested account.
             var account = await _context.Accounts.FindAsync(request.AccountId);
 
             // =====================================================
             // MEMBER 1 - INTEGRATION FIX: WITHDRAWAL VALIDATION
             // =====================================================
-            //
             // Original implementation: Member 2
             // Integration correction: Member 1
+            // API error handling: Member 3
             //
-            // Issue identified:
-            // The original implementation accessed account.IsActive
-            // BEFORE verifying whether the account was null.
+            // The account existence check must happen before
+            // accessing IsActive. Otherwise, a nonexistent
+            // account would cause a NullReferenceException.
             //
-            // FindAsync() returns null when an account does not exist.
-            // Accessing IsActive on a null object would throw a
-            // NullReferenceException instead of returning HTTP 404.
+            // ORIGINAL MEMBER 2 CODE (REFERENCE ONLY):
             //
-            // The original code is preserved below for comparison.
-            // The corrected implementation follows immediately after.
+            // if (!account.IsActive)
+            // {
+            //     return UnprocessableEntity(...);
+            // }
             //
-            // Reference:
-            // Microsoft Learn - Null reference exceptions
-            // https://learn.microsoft.com/en-us/dotnet/api/system.nullreferenceexception
+            // if (account == null)
+            // {
+            //     return NotFound(...);
+            // }
+            //
+            // CORRECT ORDER:
+            // 1. Verify account exists.
+            // 2. Verify account is active.
             // =====================================================
 
-            /*
-             * ORIGINAL MEMBER 2 CODE - RETAINED FOR REFERENCE
-             * -------------------------------------------------
-             *
-             * if (!account.IsActive)
-             * {
-             *     return UnprocessableEntity(new { message = "Cannot withdraw from an inactive account. " });
-             * }
-             *
-             * if (account == null)
-             * {
-             *     return NotFound(new { message = "Account not found. " });
-             * }
-             *
-             * ISSUE:
-             * The IsActive check occurs before the null check.
-             * This code is intentionally commented out and
-             * must not be executed.
-             */
-
-            // =====================================================
-            // CORRECTED IMPLEMENTATION - MEMBER 1
-            // =====================================================
-
-            // STEP 2 - Check account existence FIRST.
+            // STEP 2 - Check account existence first.
             if (account == null)
             {
-                return NotFound(new
-                {
-                    message = "Account not found."
-                });
+                return ApiProblem(
+                    StatusCodes.Status404NotFound,
+                    "Account not found");
             }
 
-            // STEP 3 - Check activation status AFTER null validation.
+            // STEP 3 - Check activation status.
             if (!account.IsActive)
             {
-                return UnprocessableEntity(new
-                {
-                    message = "Cannot withdraw from an inactive account."
-                });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Account is inactive",
+                    "Cannot withdraw from an inactive account.");
             }
 
             // STEP 4 - Verify sufficient funds.
             if (account.Balance < request.Amount)
             {
-                return UnprocessableEntity(new
-                {
-                    message = "Insufficient funds for this withdrawal."
-                });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Insufficient funds",
+                    "The account does not have enough balance for this withdrawal.");
             }
 
             // STEP 5 - Deduct the withdrawal amount.
@@ -197,12 +184,18 @@ namespace BankService.Controllers
         {
             if (request.Amount <= 0)
             {
-                return UnprocessableEntity(new { message = " Transfer amount must be greater than zero. " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Invalid transfer amount",
+                    "Transfer amount must be greater than zero.");
             }
 
             if (request.SourceAccountId == request.DestinationAccountId)
             {
-                return UnprocessableEntity(new { message = " Cannot transfer funds to the exact same account " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Invalid transfer accounts",
+                    "Cannot transfer funds to the same account.");
             }
 
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
@@ -213,17 +206,26 @@ namespace BankService.Controllers
 
                 if (sourceAccount == null || destAccount == null)
                 {
-                    return NotFound(new { message = "Source or destination account not found." });
+                    return ApiProblem(
+                        StatusCodes.Status404NotFound,
+                        "Account not found",
+                        "The source or destination account was not found.");
                 }
 
                 if (!sourceAccount.IsActive || !destAccount.IsActive)
                 {
-                    return UnprocessableEntity(new { message = "Cannot transfer between inactive accounts." });
+                    return ApiProblem(
+                        StatusCodes.Status422UnprocessableEntity,
+                        "Account is inactive",
+                        "Cannot transfer between inactive accounts.");
                 }
 
                 if (sourceAccount.Balance < request.Amount)
                 {
-                    return UnprocessableEntity(new { message = "Insufficient funds in the source account." });
+                    return ApiProblem(
+                        StatusCodes.Status422UnprocessableEntity,
+                        "Insufficient funds",
+                        "The source account does not have enough balance for this transfer.");
                 }
 
                 // Perform transfer
@@ -250,7 +252,9 @@ namespace BankService.Controllers
             catch (Exception)
             {
                 await dbTransaction.RollbackAsync();
-                return StatusCode(500, new { message = "An error occurred while processing the transfer." });
+                return ApiProblem(
+                    StatusCodes.Status500InternalServerError,
+                    "Transfer processing failed");
             }
         }
     }

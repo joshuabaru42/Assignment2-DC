@@ -1,0 +1,131 @@
+{
+  "info": {
+    "_postman_id": "a98f6a20-5990-4373-a8cb-7103d1a95010",
+    "name": "BankService Part A",
+    "description": "Member 3 Part A API checks. Set adminCookie after Member 1 implements login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5123" },
+    { "key": "adminCookie", "value": "" },
+    { "key": "userId", "value": "1" },
+    { "key": "accountId", "value": "1" },
+    { "key": "destinationAccountId", "value": "2" }
+  ],
+  "item": [
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "Get all accounts",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/accounts" }
+        },
+        {
+          "name": "Get account by ID",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/accounts/{{accountId}}" }
+        },
+        {
+          "name": "Get missing account - structured 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/accounts/999999"
+          }
+        },
+        {
+          "name": "Create account for missing user - structured 422",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": 999999,\n  \"accountNumber\": \"TEST-001\"\n}" },
+            "url": "{{baseUrl}}/api/accounts"
+          }
+        },
+        {
+          "name": "Create account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": {{userId}},\n  \"accountNumber\": \"POSTMAN-{{$randomInt}}\"\n}" },
+            "url": "{{baseUrl}}/api/accounts"
+          }
+        },
+        {
+          "name": "Deactivate account",
+          "request": { "method": "PATCH", "header": [], "url": "{{baseUrl}}/api/accounts/{{accountId}}/deactivate" }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Deposit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"accountId\": {{accountId}},\n  \"amount\": 100,\n  \"description\": \"Postman deposit\"\n}" },
+            "url": "{{baseUrl}}/api/transactions/deposit"
+          }
+        },
+        {
+          "name": "Withdraw",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"accountId\": {{accountId}},\n  \"amount\": 10,\n  \"description\": \"Postman withdrawal\"\n}" },
+            "url": "{{baseUrl}}/api/transactions/withdraw"
+          }
+        },
+        {
+          "name": "Withdraw from missing account - structured 404",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"accountId\": 999999,\n  \"amount\": 10\n}" },
+            "url": "{{baseUrl}}/api/transactions/withdraw"
+          }
+        },
+        {
+          "name": "Transfer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sourceAccountId\": {{accountId}},\n  \"destinationAccountId\": {{destinationAccountId}},\n  \"amount\": 10,\n  \"description\": \"Postman transfer\"\n}" },
+            "url": "{{baseUrl}}/api/transactions/transfer"
+          }
+        },
+        {
+          "name": "Transfer to same account - structured 422",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sourceAccountId\": {{accountId}},\n  \"destinationAccountId\": {{accountId}},\n  \"amount\": 10\n}" },
+            "url": "{{baseUrl}}/api/transactions/transfer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Administration",
+      "item": [
+        {
+          "name": "Search users without login - structured 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/users?search=admin&page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Search users as administrator",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Cookie", "value": "{{adminCookie}}" }],
+            "url": "{{baseUrl}}/api/admin/users?search=admin&page=1&pageSize=20"
+          }
+        }
+      ]
+    }
+  ]
+}
