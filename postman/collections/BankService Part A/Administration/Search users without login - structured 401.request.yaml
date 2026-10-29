@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/admin/users?search=admin&page=1&pageSize=20"
+method: GET
+queryParams:
+  search: admin
+  page: "1"
+  pageSize: "20"
+order: 1000

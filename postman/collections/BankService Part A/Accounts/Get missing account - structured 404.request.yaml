@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/accounts/999999"
+method: GET
+order: 3000

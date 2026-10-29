@@ -257,5 +257,58 @@ namespace BankService.Controllers
                     "Transfer processing failed");
             }
         }
+
+        // GET : api/transactions/account/{accountId}
+        [HttpGet("account/{accountId}")]
+        public async Task<IActionResult> GetTransactionsByAccount(
+            
+            int accountId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = "date",
+            [FromQuery] string? sortOrder = "desc",
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+
+        {
+            //Verify account exist first 
+            var account = await _context.Accounts.FindAsync(accountId);
+            if(account == null)
+            {
+                return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
+            }
+
+            var query = _context.Transactions.Where(t => t.AccountId == accountId);
+
+            // 1. Date-range filtering (using TimeStamp with capital S)
+            if (startDate.HasValue)
+                query = query.Where(t => t.TimeStamp >= startDate.Value);
+            if (endDate.HasValue)
+                query = query.Where(t => t.TimeStamp <= endDate.Value);
+
+            // 2. Sorting
+            query = sortBy?.ToLower() switch
+            {
+                "amount" => sortOrder == "asc" ? query.OrderBy(t => t.Amount) : query.OrderByDescending(t => t.Amount),
+                _ => sortOrder == "asc" ? query.OrderBy(t => t.TimeStamp) : query.OrderByDescending(t => t.TimeStamp),
+            };
+
+            // 3. Pagination
+            var totalRecords = await query.CountAsync();
+            var transactions = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Return paginated response
+            return Ok(new
+            {
+                TotalRecords = totalRecords,
+                Page = page,
+                PageSize = pageSize,
+                Data = transactions
+            });
+        }
+            
     }
 }

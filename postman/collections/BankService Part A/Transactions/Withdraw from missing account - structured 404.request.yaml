@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/transactions/withdraw"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "accountId": 999999,
+      "amount": 10
+    }
+order: 3000

@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/transactions/deposit"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "accountId": {{accountId}},
+      "amount": 100,
+      "description": "Postman deposit"
+    }
+order: 1000

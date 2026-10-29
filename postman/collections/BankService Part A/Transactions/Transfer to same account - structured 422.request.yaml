@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/transactions/transfer"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "sourceAccountId": {{accountId}},
+      "destinationAccountId": {{accountId}},
+      "amount": 10
+    }
+order: 5000

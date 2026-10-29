@@ -1,0 +1,13 @@
+# Use this workspace to collaborate
+workspace:
+  id: 17fa0c83-aa9b-4c65-8967-c44ed27c5424
+
+localResources:
+  collections:
+    - ../BankService/BankService/BankService.postman_collection.json
+  specs:
+    - ../BankService/BankService/obj/Debug/net10.0/EndpointInfo/BankService.json
+
+cloudResources:
+  collections:
+    ../postman/collections/BankService Part A: fcd56509-6e09-4a02-9920-5d3ba50c4ccc

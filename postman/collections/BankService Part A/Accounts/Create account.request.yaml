@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/accounts"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "userId": {{userId}},
+      "accountNumber": "POSTMAN-{{$randomInt}}"
+    }
+order: 5000

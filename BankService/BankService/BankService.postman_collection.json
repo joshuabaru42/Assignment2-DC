@@ -153,6 +153,19 @@
           "request": { "method": "POST", "header": [], "url": "{{baseUrl}}/api/auth/logout" }
         }
       ]
+    },
+    {
+      "name": "Users and Profiles",
+      "item": [
+        { "name": "Register customer", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"username\": \"postman{{$randomInt}}\",\n  \"name\": \"Postman User\",\n  \"email\": \"postman{{$randomInt}}@example.test\",\n  \"address\": \"Test Address\",\n  \"phone\": \"0400000000\",\n  \"password\": \"PostmanTest!2026\"\n}" }, "url": "{{baseUrl}}/api/users" } },
+        { "name": "Get profile by ID", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/users/{{userId}}" } },
+        { "name": "Update profile", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Postman User\",\n  \"email\": \"seeduser01@example.test\",\n  \"address\": \"Updated Address\",\n  \"phone\": \"0400000000\"\n}" }, "url": "{{baseUrl}}/api/users/{{userId}}" } },
+        { "name": "Get profile by username", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/users/by-username/seeduser01" } },
+        { "name": "Get profile by email", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/users/by-email?email=seeduser01@example.test" } },
+        { "name": "Deactivate user", "request": { "method": "PATCH", "header": [], "url": "{{baseUrl}}/api/users/{{userId}}/deactivate" } },
+        { "name": "Upload profile picture", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "multipart/form-data" }], "url": "{{baseUrl}}/api/users/{{userId}}/picture" } },
+        { "name": "Get profile picture", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/users/{{userId}}/picture" } }
+      ]
     }
   ]
 }
