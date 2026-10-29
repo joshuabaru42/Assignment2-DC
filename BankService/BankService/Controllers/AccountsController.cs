@@ -10,7 +10,7 @@ namespace BankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AccountsController : ControllerBase
+    public class AccountsController : ApiControllerBase
     {
 
         private readonly BankContext _context;
@@ -62,7 +62,7 @@ namespace BankService.Controllers
 
             if (account == null)
             {
-                return NotFound(new { message = "Account not found"});
+                return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
             }
 
             var responseDtos = new AccountResponseDto
@@ -87,7 +87,9 @@ namespace BankService.Controllers
 
             if (!userExists)
             {
-                return UnprocessableEntity(new { message = " Associated User ID does not exist " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Associated user does not exist");
 
             }
 
@@ -123,12 +125,15 @@ namespace BankService.Controllers
             var account = await _context.Accounts.FindAsync(id);
             if(account == null)
             {
-                return NotFound(new { message = "Account Not Found" });
+                return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
 
             }
             if(account.Balance > 0)
             {
-                return UnprocessableEntity(new { message = "Cannot deactivate an account with a remaining positive balance. " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Account cannot be deactivated",
+                    "An account with a positive balance cannot be deactivated.");
             }
 
             account.IsActive = false;

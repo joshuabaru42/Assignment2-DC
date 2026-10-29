@@ -9,7 +9,7 @@ namespace BankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TransactionsController : ControllerBase
+    public class TransactionsController : ApiControllerBase
     {
         private readonly BankContext _context;
 
@@ -42,18 +42,24 @@ namespace BankService.Controllers
         {
             if (request.Amount <= 0)
             {
-                return UnprocessableEntity(new { message = " Deposit amoout must be greater than zero." });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Invalid deposit amount",
+                    "Deposit amount must be greater than zero.");
             }
 
             var account = await _context.Accounts.FindAsync(request.AccountId);
             if (account == null)
             {
-                return NotFound(new { message = "Account not found. "});
+                return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
             }
 
             if (!account.IsActive)
             {
-                return UnprocessableEntity(new { message = "Cannot deposit into an inactive account. " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Account is inactive",
+                    "Cannot deposit into an inactive account.");
             }
 
             account.Balance += request.Amount;
@@ -79,24 +85,34 @@ namespace BankService.Controllers
         {
             if (request.Amount <= 0)
             {
-                return UnprocessableEntity(new { message = " Withdrawal amount must be greater than zero. " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Invalid withdrawal amount",
+                    "Withdrawal amount must be greater than zero.");
             }
 
             var account = await _context.Accounts.FindAsync(request.AccountId);
-            if (!account.IsActive)
-            {
-                return UnprocessableEntity(new { message = "Cannot withdraw from an inactive account. " });
-            }
 
             if (account == null)
             {
-                return NotFound(new { message = "Account not found. " });
+                return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
+            }
+
+            if (!account.IsActive)
+            {
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Account is inactive",
+                    "Cannot withdraw from an inactive account.");
             }
 
             if (account.Balance < request.Amount)
             {
 
-                return UnprocessableEntity(new { message = " Insufficient funds for this withdrawal " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Insufficient funds",
+                    "The account does not have enough balance for this withdrawal.");
             }
             account.Balance -= request.Amount;
 
@@ -121,12 +137,18 @@ namespace BankService.Controllers
         {
             if (request.Amount <= 0)
             {
-                return UnprocessableEntity(new { message = " Transfer amount must be greater than zero. " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Invalid transfer amount",
+                    "Transfer amount must be greater than zero.");
             }
 
             if (request.SourceAccountId == request.DestinationAccountId)
             {
-                return UnprocessableEntity(new { message = " Cannot transfer funds to the exact same account " });
+                return ApiProblem(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Invalid transfer accounts",
+                    "Cannot transfer funds to the same account.");
             }
 
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
@@ -137,17 +159,26 @@ namespace BankService.Controllers
 
                 if (sourceAccount == null || destAccount == null)
                 {
-                    return NotFound(new { message = "Source or destination account not found." });
+                    return ApiProblem(
+                        StatusCodes.Status404NotFound,
+                        "Account not found",
+                        "The source or destination account was not found.");
                 }
 
                 if (!sourceAccount.IsActive || !destAccount.IsActive)
                 {
-                    return UnprocessableEntity(new { message = "Cannot transfer between inactive accounts." });
+                    return ApiProblem(
+                        StatusCodes.Status422UnprocessableEntity,
+                        "Account is inactive",
+                        "Cannot transfer between inactive accounts.");
                 }
 
                 if (sourceAccount.Balance < request.Amount)
                 {
-                    return UnprocessableEntity(new { message = "Insufficient funds in the source account." });
+                    return ApiProblem(
+                        StatusCodes.Status422UnprocessableEntity,
+                        "Insufficient funds",
+                        "The source account does not have enough balance for this transfer.");
                 }
 
                 // Perform transfer
@@ -171,10 +202,12 @@ namespace BankService.Controllers
                 return Ok(new { messages = " Transfer successful", sourceNewBalance = sourceAccount.Balance });
 
             }
-            catch (Exception) 
+            catch (Exception)
             {
                 await dbTransaction.RollbackAsync();
-                return StatusCode(500, new { message = "An error occurred while processing the transfer." });
+                return ApiProblem(
+                    StatusCodes.Status500InternalServerError,
+                    "Transfer processing failed");
             }
         }
     }

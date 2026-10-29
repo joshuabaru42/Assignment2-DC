@@ -1,6 +1,25 @@
 @BankService_HostAddress = http://localhost:5123
 
-GET {{BankService_HostAddress}}/weatherforecast/
+# Member 3: Part A structured error response smoke check.
+GET {{BankService_HostAddress}}/api/accounts/999999
 Accept: application/json
+
+###
+
+# Member 3: Part A protected user-search smoke check; expect 401 before login is implemented.
+GET {{BankService_HostAddress}}/api/admin/users?search=admin&page=1&pageSize=20
+Accept: application/json
+
+###
+
+# Member 3: Part A missing-account withdrawal smoke check; expect 404 rather than a server error.
+POST {{BankService_HostAddress}}/api/transactions/withdraw
+Content-Type: application/json
+Accept: application/json
+
+{
+  "accountId": 999999,
+  "amount": 10
+}
 
 ###
