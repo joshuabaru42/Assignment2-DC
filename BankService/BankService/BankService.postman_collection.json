@@ -126,6 +126,33 @@
           }
         }
       ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login as seeded administrator",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"seeduser01\",\n  \"password\": \"DemoUser01!2026\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login with invalid credentials - 401",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"seeduser01\",\n  \"password\": \"invalid\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "header": [], "url": "{{baseUrl}}/api/auth/logout" }
+        }
+      ]
     }
   ]
 }

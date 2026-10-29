@@ -14,7 +14,7 @@ ASP.NET Core Web API backed by SQLite for bank account and transaction operation
 
 ## Prerequisites
 
-- .NET 10 SDK
+- Target framework: `net10.0` (.NET 10 SDK)
 - SQLite is included through the EF Core SQLite provider
 
 
@@ -34,6 +34,14 @@ for the current Member 1 seeder implementation.
 
 The seeded demonstration administrator is `seeduser01`
 with the `Admin` role.
+
+Seeded administrator login details:
+
+```text
+Username: seeduser01
+Password: DemoUser01!2026
+Role: Admin
+```
 
 These demonstration credentials are intended for local
 assignment testing only, not production use.
@@ -95,19 +103,6 @@ The `.http` file includes the same local smoke checks. The following requests sh
 - `POST /api/transactions/withdraw` for a nonexistent account returns `404`.
 - `GET /api/admin/users` without a login cookie returns `401`.
 
-## Authentication integration (Old)
-
-The API uses the `BankService.Auth` cookie. Member 1's login implementation must issue this cookie with:
-
-- `ClaimTypes.NameIdentifier`
-- `ClaimTypes.Role` with the value `Admin` for administrators
-
-After login is available, administrators can search users with:
-
-```text
-GET /api/admin/users?search=admin&page=1&pageSize=20
-```
-
 ## Authentication integration (New)
 
 The API uses the `BankService.Auth` cookie. Member 1's login implementation issues this cookie with:
@@ -121,7 +116,7 @@ After logging in, administrators can search users with:
 GET /api/admin/users?search=admin&page=1&pageSize=20
 ```
 
-Member 1's login and logout endpoints have been implemented and tested successfully.'
+Member 1's login and logout endpoints have been implemented and tested successfully.
 Customer and administrator access permissions have also been verified through Postman.
 
 Member 1's authentication implementation is integrated with
