@@ -1,0 +1,89 @@
+﻿
+@model BankWebApp.Models.UploadPictureViewModel
+
+@{
+    // =====================================================
+    // MEMBER 1 - PART B REQUIREMENTS 2 AND 3
+    // Customer profile picture upload page.
+    //
+    // SECURITY:
+    // - Requires an authenticated customer.
+    // - Uses multipart/form-data for file upload.
+    // - Includes antiforgery protection.
+    // - Accepts JPEG/PNG in the file chooser.
+    // - Part A performs authoritative file validation.
+    //
+    // Reference:
+    // https://learn.microsoft.com/en-us/aspnet/core/mvc/models/file-uploads
+    // =====================================================
+
+    ViewData["Title"] = "Upload Profile Picture";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+
+                    <h2 class="mb-2">Upload Profile Picture</h2>
+
+                    <p class="text-muted mb-4">
+                        Choose a JPEG or PNG image to use as
+                        your customer profile picture.
+                    </p>
+
+                    <form asp-controller="Profile"
+                          asp-action="UploadPicture"
+                          method="post"
+                          enctype="multipart/form-data">
+
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Picture"
+                                   class="form-label"></label>
+
+                            <input asp-for="Picture"
+                                   type="file"
+                                   class="form-control"
+                                   accept=".jpg,.jpeg,.png,image/jpeg,image/png" />
+
+                            <span asp-validation-for="Picture"
+                                  class="text-danger"></span>
+                        </div>
+
+                        <p class="small text-muted mb-4">
+                            Maximum file size: 2 MB.
+                            Supported formats: JPG, JPEG and PNG.
+                        </p>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit"
+                                    class="btn btn-primary">
+                                Upload Picture
+                            </button>
+
+                            <a asp-controller="Profile"
+                               asp-action="Me"
+                               class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
