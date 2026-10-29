@@ -17,6 +17,9 @@ namespace BankService.Models
         public string PasswordSalt { get; set; }
         public string Role { get; set; } = "Customer"; // Customer or Admin
 
+        // Member 3: Prevents inactive users from accessing protected functionality.
+        public bool IsActive { get; set; } = true;
+
         public ICollection<Account> Accounts { get; set; } = new List<Account>();
     }
 }

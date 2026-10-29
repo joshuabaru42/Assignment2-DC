@@ -1,29 +1,124 @@
 using BankService.Data;
+using BankService.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Member 3: Provides a consistent RFC 9457 error response format.
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+        context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+});
 
 builder.Services.AddDbContext<BankContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Member 3: Shared password hashing for seeded users.
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+
+// Member 3: Member 1's login flow must issue this cookie with NameIdentifier and Role claims.
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "BankService.Auth";
+        options.SlidingExpiration = true;
+
+        options.Events.OnRedirectToLogin = context =>
+            WriteProblemDetailsAsync(
+                context.Response,
+                context.HttpContext.TraceIdentifier,
+                StatusCodes.Status401Unauthorized,
+                "Authentication required");
+
+        options.Events.OnRedirectToAccessDenied = context =>
+            WriteProblemDetailsAsync(
+                context.Response,
+                context.HttpContext.TraceIdentifier,
+                StatusCodes.Status403Forbidden,
+                "Administrator access is required");
+
+        // Member 3: Reject existing sessions after a user is deactivated.
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            var userIdValue = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdValue, out var userId))
+            {
+                context.RejectPrincipal();
+                return;
+            }
+
+            var bankContext = context.HttpContext.RequestServices.GetRequiredService<BankContext>();
+            var isActive = await bankContext.Users
+                .AsNoTracking()
+                .AnyAsync(user => user.Id == userId && user.IsActive);
+
+            if (!isActive)
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Member 3: Keep the SQLite schema and required seed data current at application startup.
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<BankContext>();
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+    var logger = scope.ServiceProvider
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("BankSeeder");
+
+    await context.Database.MigrateAsync();
+    await BankSeeder.SeedAsync(context, passwordHasher, app.Configuration, logger);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
+// Member 3: Return standardized problem details for exceptions and empty error responses.
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 app.UseHttpsRedirection();
 
+// Member 3: Authentication must run before authorization.
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+static Task WriteProblemDetailsAsync(
+    HttpResponse response,
+    string traceIdentifier,
+    int statusCode,
+    string detail)
+{
+    response.StatusCode = statusCode;
+
+    return response.WriteAsJsonAsync(new ProblemDetails
+    {
+        Status = statusCode,
+        Title = statusCode == StatusCodes.Status401Unauthorized ? "Unauthorized" : "Forbidden",
+        Detail = detail,
+        Extensions = { ["traceId"] = traceIdentifier }
+    });
+}
