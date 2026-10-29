@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/accounts/{{accountId}}/deactivate"
+method: PATCH
+order: 6000

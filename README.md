@@ -156,3 +156,36 @@ Postman testing confirmed:
 - HTTP 403 for customers accessing administrator endpoints.
 - Successful logout and HTTP 401 for unauthenticated access.
 - Rejection of login attempts by deactivated users.
+
+
+## Member 2 Part A deliverables: Accounts & Transactions
+
+- `AccountsController`: Implemented account management endpoints using secure request/response DTOs (`AccountCreateDto`, `AccountResponseDto`) to prevent client-side balance injection and protect sensitive user data (like passwords).
+- `TransactionsController`: Developed core financial operations including deposits, withdrawals, and account-to-account transfers.
+- 'Data Seeder Compatibility': Standardized transfers to utilize a single unified `Transaction` record with `TargetAccountId`, matching the teammate's data seeder specifications.
+- Business Logic & Validation: 
+  - Enforced `IsActive` account status checks on all deposits, withdrawals, and transfers.
+  - Mandated transaction `Description` fields for database consistency.
+  - Handled robust database rollback safety using EF Core database transactions.
+  - Implemented appropriate HTTP status codes (e.g., `404 Not Found`, `422 Unprocessable Entity` for insufficient funds, negative amounts, or inactive accounts).
+
+### Account & Transaction Endpoints
+
+#### Accounts (`/api/accounts`)
+- `GET /api/accounts`: Retrieves all accounts mapped via safe response DTOs.
+- `GET /api/accounts/{id}`: Retrieves a specific account by ID.
+- `POST /api/accounts`: Creates a new account securely (forcing starting balance to `0.00` and default active status).
+- `PATCH /api/accounts/{id}/deactivate`: Deactivates an account (restricted if a positive balance remains).
+
+#### Transactions (`/api/transactions`)
+- `POST /api/transactions/deposit`: Deposits funds into an active account.
+- `POST /api/transactions/withdraw`: Withdraws funds from an active account with balance validation.
+- `POST /api/transactions/transfer`: Executes an atomic account-to-account transfer creating a single standardized transaction record.
+
+### Verification & Error Handling
+
+Postman testing verified correct handling of key validation cases:
+- `422 Unprocessable Entity` returned when attempting transactions on inactive accounts.
+- `422 Unprocessable Entity` returned for insufficient funds or zero/negative amounts.
+- `404 Not Found` returned when referencing non-existent source or target accounts.
+- Successful atomic rollback during transfer failures.

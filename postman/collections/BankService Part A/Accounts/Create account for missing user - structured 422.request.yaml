@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/accounts"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "userId": 999999,
+      "accountNumber": "TEST-001"
+    }
+order: 4000

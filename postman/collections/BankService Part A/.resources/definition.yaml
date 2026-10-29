@@ -1,0 +1,8 @@
+$kind: collection
+description: Member 3 Part A API checks. Set adminCookie after Member 1 implements login.
+variables:
+  baseUrl: http://localhost:5123
+  adminCookie: ""
+  userId: "1"
+  accountId: "1"
+  destinationAccountId: "2"
