@@ -140,6 +140,56 @@ namespace BankService.Controllers
 
             return NoContent();
         }
+
+        // GET: api/accounts/by-number/{accountNumber}
+        [HttpGet("by-number/{accountNumber}")]
+        public async Task<ActionResult<Account>> GetAccountByNumber(string accountNumber)
+        {
+            var account = await _context.Accounts
+                .FirstOrDefaultAsync(a => a.AccountNumber == accountNumber);
+
+            if (account == null)
+            {
+                return NotFound($"Account with number '{accountNumber}' was not found.");
+            }
+
+            return Ok(account);
+        }
+
+        // PUT: api/accounts/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateAccount(int id, [FromBody] Account updatedAccount)
+        {
+            if (id != updatedAccount.Id)
+            {
+                return BadRequest("Account ID mismatch.");
+            }
+
+            var existingAccount = await _context.Accounts.FindAsync(id);
+            if (existingAccount == null)
+            {
+                return NotFound($"Account with ID {id} was not found.");
+            }
+
+            // Update editable fields
+            existingAccount.Balance = updatedAccount.Balance;
+            existingAccount.IsActive = updatedAccount.IsActive;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Accounts.Any(a => a.Id == id))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
+
+            return NoContent();
+        }
     }
 
 }
