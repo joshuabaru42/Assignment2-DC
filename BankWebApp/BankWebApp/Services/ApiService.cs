@@ -406,76 +406,318 @@ namespace BankWebApp.Services
         // https://restsharp.dev/docs/usage/execute/
         // =====================================================
 
-        public async Task<List<Account>> getAccountsForUserAsync(int userId)
+        // =====================================================
+        // ORIGINAL IMPLEMENTATION - MEMBER 2 (REFERENCE ONLY)
+        //
+        // Originally retrieved accounts using the user ID,
+        // but did not forward the BankService authentication cookie.
+        //
+        // PART B INTEGRATION FIX - MEMBER 1
+        // Updated to support authenticated API requests and
+        // preserve HTTP status codes for proper error handling.
+        //
+        // The original method is retained below for reference.
+        // =====================================================
+
+        //public async Task<List<Account>> getAccountsForUserAsync(int userId)
+        //{
+        //var request = new RestRequest($"api/accounts/user/{userId}", Method.Get);
+        //var response = await _client.ExecuteAsync<List<Account>>(request);
+        //return response.Data ?? new List<Account>();
+        //} Old code previously by member 2 
+
+        // =====================================================
+        // PART B INTEGRATION - MEMBER 1 + MEMBER 2
+        // Authenticated customer account retrieval.
+        //
+        // Reuses Member 1's server-side API session mechanism.
+        // Preserves Member 2's account retrieval functionality.
+        // =====================================================
+
+        public async Task<RestResponse<List<Account>>> getAccountsForUserAsync(
+            int userId,
+            string apiAuthCookie)
         {
-            var request = new RestRequest($"api/accounts/user/{userId}", Method.Get);
-            var response = await _client.ExecuteAsync<List<Account>>(request);
-            return response.Data ?? new List<Account>();
+            if (userId <= 0 || string.IsNullOrWhiteSpace(apiAuthCookie))
+            {
+                throw new ArgumentException(
+                    "A valid customer ID and API session are required.");
+            }
+
+            var request = new RestRequest(
+                $"api/accounts/user/{userId}",
+                Method.Get);
+
+            request.AddCookie("BankService.Auth", apiAuthCookie);
+
+            return await _client.ExecuteAsync<List<Account>>(request);
         }
 
         // =====================================================
-        // MEMBER 2 - PART B
-        // Get paginated and filtered transactions for an account.
+        // ORIGINAL IMPLEMENTATION - MEMBER 2 (REFERENCE ONLY)
         //
-        // Uses RestSharp query parameters mapping.
+        // This method retrieves paginated transaction history,
+        // including sorting and date-range filtering.
         //
-        // Reference:
-        // https://restsharp.dev/docs/usage/request/
+        // PART B INTEGRATION ISSUE:
+        // 1. Did not attach the BankService.Auth cookie.
+        // 2. Returned an empty result when the API response
+        //    contained no data, masking HTTP errors such as 401.
+        //
+        // INTEGRATION CORRECTION - MEMBER 1:
+        // Forward the authenticated customer's API cookie and
+        // preserve the HTTP response for proper error handling.
+        //
+        // Original code retained for contribution reference.
         // =====================================================
-        public async Task<PagedResult<Transaction>> GetTransactionsAsync(
 
-            int accountId, int page = 1, int pageSize = 10,
-            string sortBy = "date", string sortOrder = "desc",
-            DateTime? startDate = null, DateTime? endDate = null)
+        // public async Task<PagedResult<Transaction>> GetTransactionsAsync(
+        //     int accountId, int page = 1, int pageSize = 10,
+        //     string sortBy = "date", string sortOrder = "desc",
+        //     DateTime? startDate = null, DateTime? endDate = null)
+        // {
+        //     var request = new RestRequest(
+        //         $"api/transactions/account/{accountId}", Method.Get);
+        //
+        //     request.AddQueryParameter("page", page);
+        //     request.AddQueryParameter("pageSize", pageSize);
+        //     request.AddQueryParameter("sortBy", sortBy);
+        //     request.AddQueryParameter("sortOrder", sortOrder);
+        //
+        //     if (startDate.HasValue)
+        //         request.AddQueryParameter("startDate", startDate.Value.ToString("o"));
+        //
+        //     if (endDate.HasValue)
+        //         request.AddQueryParameter("endDate", endDate.Value.ToString("o"));
+        //
+        //     var response = await _client.ExecuteAsync<PagedResult<Transaction>>(request);
+        //     return response.Data ?? new PagedResult<Transaction>();
+        // }
+
+
+        // =====================================================
+        // PART B INTEGRATION - MEMBER 1 + MEMBER 2
+        // Authenticated transaction history retrieval.
+        //
+        // Preserves Member 2's original pagination, sorting,
+        // and filtering functionality while integrating
+        // Member 1's secure API session mechanism.
+        // =====================================================
+
+        public async Task<RestResponse<PagedResult<Transaction>>> GetTransactionsAsync(
+            int accountId,
+            string apiAuthCookie,
+            int page = 1,
+            int pageSize = 10,
+            string sortBy = "date",
+            string sortOrder = "desc",
+            DateTime? startDate = null,
+            DateTime? endDate = null)
         {
+            if (accountId <= 0 || string.IsNullOrWhiteSpace(apiAuthCookie))
+            {
+                throw new ArgumentException(
+                    "A valid account ID and API session are required.");
+            }
 
-            var request = new RestRequest($"api/transactions/account/{accountId}", Method.Get);
+            var request = new RestRequest(
+                $"api/transactions/account/{accountId}",
+                Method.Get);
+
+            // Authenticate using the current customer's API cookie.
+            request.AddCookie("BankService.Auth", apiAuthCookie);
+
+            // Preserve transaction pagination and filtering.
             request.AddQueryParameter("page", page);
             request.AddQueryParameter("pageSize", pageSize);
             request.AddQueryParameter("sortBy", sortBy);
             request.AddQueryParameter("sortOrder", sortOrder);
 
-            if (startDate.HasValue) request.AddQueryParameter("startDate", startDate.Value.ToString("o"));
-            if (endDate.HasValue) request.AddQueryParameter("endDate", endDate.Value.ToString("o"));
+            if (startDate.HasValue)
+            {
+                request.AddQueryParameter(
+                    "startDate",
+                    startDate.Value.ToString("o"));
+            }
 
-            var response = await _client.ExecuteAsync<PagedResult<Transaction>>(request);
-            return response.Data ?? new PagedResult<Transaction>();
+            if (endDate.HasValue)
+            {
+                request.AddQueryParameter(
+                    "endDate",
+                    endDate.Value.ToString("o"));
+            }
+
+            // Return the complete response so MVC can handle errors.
+            return await _client.ExecuteAsync<PagedResult<Transaction>>(request);
         }
 
         // =====================================================
-        // MEMBER 2 - PART B
-        // Deposit funds into an account.
+        // ORIGINAL IMPLEMENTATION - MEMBER 2 (REFERENCE ONLY)
         //
-        // Uses RestSharp JSON body payload for POST request.
+        // The original method submitted deposits through
+        // RestSharp and returned whether the request succeeded.
         //
-        // Reference:
-        // https://restsharp.dev/docs/usage/request/
+        // PART B INTEGRATION ISSUES:
+        // 1. Did not forward the API authentication cookie.
+        // 2. Could not distinguish authentication failures,
+        //    validation failures, or service errors.
+        //
+        // INTEGRATION CORRECTION - MEMBER 1:
+        // Forward the authenticated user's API cookie and
+        // preserve the full HTTP response.
+        //
+        // Original implementation retained for reference.
         // =====================================================
-        public async Task<bool> DepositAsync(int accountId, decimal amount, string description)
+
+        // public async Task<bool> DepositAsync(
+        //     int accountId, decimal amount, string description)
+        // {
+        //     var request = new RestRequest(
+        //         "api/transactions/deposit", Method.Post);
+        //
+        //     request.AddJsonBody(new
+        //     {
+        //         AccountId = accountId,
+        //         Amount = amount,
+        //         Description = description
+        //     });
+        //
+        //     var response = await _client.ExecuteAsync(request);
+        //     return response.IsSuccessful;
+        // }
+
+
+        // =====================================================
+        // PART B INTEGRATION - MEMBER 1 + MEMBER 2
+        // Authenticated deposit through BankService.
+        //
+        // Member 2's original transaction payload is preserved.
+        // Member 1's API session mechanism provides authentication.
+        // BankService independently verifies account ownership.
+        // =====================================================
+
+        public async Task<RestResponse> DepositAsync(
+            int accountId,
+            string apiAuthCookie,
+            decimal amount,
+            string description)
         {
-            var request = new RestRequest($"api/transactions/deposit", Method.Post);
-            request.AddJsonBody(new { AccountId = accountId, Amount = amount, Description = description });
-            var response = await _client.ExecuteAsync(request);
-            return response.IsSuccessful;
+            if (accountId <= 0 ||
+                string.IsNullOrWhiteSpace(apiAuthCookie))
+            {
+                throw new ArgumentException(
+                    "A valid account ID and API session are required.");
+            }
+
+            var request = new RestRequest(
+                "api/transactions/deposit",
+                Method.Post);
+
+            // Attach only the authenticated customer's API cookie.
+            request.AddCookie("BankService.Auth", apiAuthCookie);
+
+            // Preserve Member 2's deposit request fields.
+            request.AddJsonBody(new
+            {
+                AccountId = accountId,
+                Amount = amount,
+                Description = description
+            });
+
+            // Return status information for MVC error handling.
+            return await _client.ExecuteAsync(request);
         }
 
         // =====================================================
-        // MEMBER 2 - PART B
-        // Withdraw funds from an account.
+        // ORIGINAL IMPLEMENTATION - MEMBER 2 (REFERENCE ONLY)
         //
-        // Uses RestSharp JSON body payload for POST request.
+        // Originally submitted withdrawal requests using
+        // RestSharp and returned a success/failure boolean.
         //
-        // Reference:
-        // https://restsharp.dev/docs/usage/request/
+        // PART B INTEGRATION ISSUES:
+        // 1. Did not forward the API authentication cookie.
+        // 2. Could not distinguish authorization failures,
+        //    insufficient funds, or other validation errors.
+        //
+        // INTEGRATION CORRECTION - MEMBER 1:
+        // Forward the customer's API authentication cookie
+        // and preserve the full HTTP response.
         // =====================================================
-        public async Task<bool> WithdrawAsync(int accountId, decimal amount, string description)
+
+        // public async Task<bool> WithdrawAsync(
+        //     int accountId, decimal amount, string description)
+        // {
+        //     var request = new RestRequest(
+        //         "api/transactions/withdraw", Method.Post);
+        //
+        //     request.AddJsonBody(new
+        //     {
+        //         AccountId = accountId,
+        //         Amount = amount,
+        //         Description = description
+        //     });
+        //
+        //     var response = await _client.ExecuteAsync(request);
+        //     return response.IsSuccessful;
+        // }
+
+
+        // =====================================================
+        // PART B INTEGRATION - MEMBER 1 + MEMBER 2
+        // Authenticated customer withdrawal.
+        //
+        // Preserves Member 2's transaction request fields.
+        // BankService independently validates ownership,
+        // account status and sufficient funds.
+        // =====================================================
+
+        public async Task<RestResponse> WithdrawAsync(
+            int accountId,
+            string apiAuthCookie,
+            decimal amount,
+            string description)
         {
-            var request = new RestRequest($"api/transactions/withdraw", Method.Post);
-            request.AddJsonBody(new { AccountId = accountId, Amount = amount, Description = description });
-            var response = await _client.ExecuteAsync(request);
-            return response.IsSuccessful;
+            if (accountId <= 0 ||
+                string.IsNullOrWhiteSpace(apiAuthCookie))
+            {
+                throw new ArgumentException(
+                    "A valid account ID and API session are required.");
+            }
+
+            var request = new RestRequest(
+                "api/transactions/withdraw",
+                Method.Post);
+
+            // Attach only the authenticated customer's API cookie.
+            request.AddCookie("BankService.Auth", apiAuthCookie);
+
+            request.AddJsonBody(new
+            {
+                AccountId = accountId,
+                Amount = amount,
+                Description = description
+            });
+
+            // Preserve HTTP status for MVC error handling.
+            return await _client.ExecuteAsync(request);
         }
 
+        // =====================================================
+        // ORIGINAL IMPLEMENTATION - MEMBER 2 (REFERENCE ONLY)
+        //
+        // PART B INTEGRATION ISSUES:
+        // 1. Did not forward the API authentication cookie.
+        // 2. Sent FromAccountId and ToAccountNumber, while
+        //    BankService expects SourceAccountId and
+        //    DestinationAccountId.
+        // 3. Returned only a boolean, hiding API error details.
+        //
+        // INTEGRATION CORRECTION - MEMBER 1:
+        // Align the transfer request with BankService's DTO,
+        // authenticate the request, and preserve HTTP statuses.
+        //
+        // Original implementation retained for reference.
+        // =====================================================
         // =====================================================
         // MEMBER 2 - PART B
         // Transfer funds between two accounts.
@@ -485,19 +727,82 @@ namespace BankWebApp.Services
         // Reference:
         // https://restsharp.dev/docs/usage/request/
         // =====================================================
-        public async Task<bool> TransferAsync(int fromAccountId, string toAccountNumber, decimal amount, string description)
+        //public async Task<bool> TransferAsync(int fromAccountId, string toAccountNumber, decimal amount, string description)
+        //{
+        //var request = new RestRequest("api/transactions/transfer", Method.Post);
+        //request.AddJsonBody(new
+        //{
+        //FromAccountId = fromAccountId,
+        //ToAccountNumber = toAccountNumber,
+        //Amount = amount,
+        //Description = description
+        //});
+
+        //var response = await _client.ExecuteAsync(request);
+        //return response.IsSuccessful;
+        //}
+
+        // =====================================================
+        // PART B INTEGRATION - MEMBER 1 + MEMBER 2
+        //
+        // Authenticated customer-to-customer transfer.
+        //
+        // Preserves Member 2's transfer functionality while
+        // integrating Member 1's API session authentication.
+        //
+        // INTEGRATION CORRECTIONS:
+        // 1. Forwards the customer's BankService authentication
+        //    cookie.
+        // 2. Uses SourceAccountId instead of FromAccountId.
+        // 3. Sends ToAccountNumber for the destination lookup.
+        // 4. Preserves the HTTP response for error handling.
+        //
+        // BankService independently validates:
+        // - Source account ownership.
+        // - Source and destination account existence.
+        // - Account status and sufficient funds.
+        // - Self-transfer restrictions.
+        // =====================================================
+
+        public async Task<RestResponse> TransferAsync(
+            int fromAccountId,
+            string toAccountNumber,
+            string apiAuthCookie,
+            decimal amount,
+            string description)
         {
-            var request = new RestRequest("api/transactions/transfer", Method.Post);
+            // STEP 1 - Validate the required request details.
+            if (fromAccountId <= 0 ||
+                string.IsNullOrWhiteSpace(toAccountNumber) ||
+                string.IsNullOrWhiteSpace(apiAuthCookie))
+            {
+                throw new ArgumentException(
+                    "A valid source account, destination account number, " +
+                    "and API session are required.");
+            }
+
+            // STEP 2 - Prepare the BankService transfer request.
+            var request = new RestRequest(
+                "api/transactions/transfer",
+                Method.Post);
+
+            // STEP 3 - Authenticate using the customer's API session.
+            request.AddCookie("BankService.Auth", apiAuthCookie);
+
+            // STEP 4 - Send the correct transfer DTO fields.
             request.AddJsonBody(new
             {
-                FromAccountId = fromAccountId,
-                ToAccountNumber = toAccountNumber,
+                SourceAccountId = fromAccountId,
+
+                // Resolved internally by BankService.
+                ToAccountNumber = toAccountNumber.Trim(),
+
                 Amount = amount,
                 Description = description
             });
 
-            var response = await _client.ExecuteAsync(request);
-            return response.IsSuccessful;
+            // STEP 5 - Return the API response for MVC handling.
+            return await _client.ExecuteAsync(request);
         }
 
         // =====================================================

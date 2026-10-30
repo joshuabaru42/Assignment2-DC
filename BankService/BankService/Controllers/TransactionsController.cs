@@ -4,11 +4,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Principal;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace BankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     // =====================================================
     // MEMBER 3 - PART A: TRANSACTION ERROR-RESPONSE INTEGRATION
     // =====================================================
@@ -27,6 +30,31 @@ namespace BankService.Controllers
             _context = context;
         }
 
+        // =====================================================
+        // PART B INTEGRATION - ACCOUNT OWNERSHIP VALIDATION
+        //
+        // Ensures that customers can access only their own
+        // accounts. Administrators may access other accounts.
+        //
+        // The identity comes from the authenticated API cookie,
+        // never from a user ID supplied by the client.
+        // =====================================================
+
+        private bool CanAccessAccount(Account account)
+        {
+            string? userIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int currentUserId)
+                || currentUserId <= 0)
+            {
+                return false;
+            }
+
+            return account.UserId == currentUserId
+                || User.IsInRole("Admin");
+        }
+
         // DTO for handling deposit/withdrawal request cleanly
         public class TransactionRequestDto
         {
@@ -43,6 +71,10 @@ namespace BankService.Controllers
             public int DestinationAccountId { get; set; }
             public decimal Amount { get; set; }
             public string? Description { get; set; }
+
+            // PART B INTEGRATION - MEMBER 1
+            // Supports transfers using the recipient's account number.
+            public string? ToAccountNumber { get; set; }
         }
 
         // POST: api/transactions/deposit
@@ -61,6 +93,14 @@ namespace BankService.Controllers
             if (account == null)
             {
                 return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
+            }
+
+            // PART B INTEGRATION - MEMBER 1
+            // Prevent customers from depositing into accounts
+            // they do not own.
+            if (!CanAccessAccount(account))
+            {
+                return Forbid();
             }
 
             if (!account.IsActive)
@@ -142,6 +182,13 @@ namespace BankService.Controllers
                     "Account not found");
             }
 
+            // PART B INTEGRATION - MEMBER 1
+            // Verify ownership before allowing withdrawals.
+            if (!CanAccessAccount(account))
+            {
+                return Forbid();
+            }
+
             // STEP 3 - Check activation status.
             if (!account.IsActive)
             {
@@ -199,26 +246,97 @@ namespace BankService.Controllers
                     "Transfer amount must be greater than zero.");
             }
 
-            if (request.SourceAccountId == request.DestinationAccountId)
-            {
-                return ApiProblem(
-                    StatusCodes.Status422UnprocessableEntity,
-                    "Invalid transfer accounts",
-                    "Cannot transfer funds to the same account.");
-            }
+            // =====================================================
+            // ORIGINAL IMPLEMENTATION - MEMBER 2 (REFERENCE ONLY)
+            //
+            // This originally prevented self-transfers by comparing
+            // the source and destination database account IDs.
+            //
+            // PART B INTEGRATION ISSUE:
+            // BankWebApp submits a destination account number,
+            // meaning DestinationAccountId may be zero.
+            //
+            // INTEGRATION CORRECTION - MEMBER 1:
+            // Compare the resolved account IDs after both accounts
+            // have been retrieved from the database.
+            // =====================================================
+
+            // if (request.SourceAccountId == request.DestinationAccountId)
+            // {
+            //     return ApiProblem(
+            //         StatusCodes.Status422UnprocessableEntity,
+            //         "Invalid transfer accounts",
+            //         "Cannot transfer funds to the same account.");
+            // }
 
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var sourceAccount = await _context.Accounts.FindAsync(request.SourceAccountId);
-                var destAccount = await _context.Accounts.FindAsync(request.DestinationAccountId);
+                // =====================================================
+                // ORIGINAL IMPLEMENTATION - MEMBER 2 (REFERENCE ONLY)
+                //
+                // Originally, both accounts were retrieved using their
+                // database account IDs.
+                //
+                // PART B INTEGRATION ISSUE:
+                // BankWebApp allows customers to enter the recipient's
+                // account number instead of its internal database ID.
+                //
+                // INTEGRATION CORRECTION - MEMBER 1:
+                // Support both recipient account numbers (Part B)
+                // and destination account IDs (original Part A).
+                // =====================================================
 
-                if (sourceAccount == null || destAccount == null)
+                // var sourceAccount = await _context.Accounts.FindAsync(
+                //     request.SourceAccountId);
+                //
+                // var destAccount = await _context.Accounts.FindAsync(
+                //     request.DestinationAccountId);
+
+
+                // =====================================================
+                // PART B INTEGRATION - MEMBER 1 + MEMBER 2
+                // Resolve the source and destination accounts.
+                // =====================================================
+
+                // Preserve Member 2's source account lookup.
+                var sourceAccount = await _context.Accounts.FindAsync(
+                    request.SourceAccountId);
+
+                // Resolve the recipient by account number when provided.
+                var destAccount = !string.IsNullOrWhiteSpace(request.ToAccountNumber)
+                    ? await _context.Accounts.FirstOrDefaultAsync(
+                        a => a.AccountNumber == request.ToAccountNumber.Trim())
+                    : await _context.Accounts.FindAsync(
+                        request.DestinationAccountId);
+
+                // =====================================================
+                // PART B INTEGRATION - MEMBER 1 + MEMBER 2
+                //
+                // Prevent self-transfers using the actual resolved
+                // account IDs, regardless of the recipient format.
+                // =====================================================
+
+                if (sourceAccount.Id == destAccount.Id)
                 {
                     return ApiProblem(
-                        StatusCodes.Status404NotFound,
-                        "Account not found",
-                        "The source or destination account was not found.");
+                        StatusCodes.Status422UnprocessableEntity,
+                        "Invalid transfer accounts",
+                        "Cannot transfer funds to the same account.");
+                }
+
+                // =====================================================
+                // PART B INTEGRATION - MEMBER 1
+                // Verify ownership of the source account.
+                //
+                // Customers may transfer to another user's account,
+                // but cannot transfer funds FROM an account they do
+                // not own.
+                // =====================================================
+
+                if (!CanAccessAccount(sourceAccount))
+                {
+                    return Forbid();
                 }
 
                 if (!sourceAccount.IsActive || !destAccount.IsActive)
@@ -287,6 +405,17 @@ namespace BankService.Controllers
                 return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
             }
 
+            // =====================================================
+            // PART B INTEGRATION - MEMBER 1
+            // Restrict transaction history to the account owner
+            // or an administrator.
+            // =====================================================
+
+            if (!CanAccessAccount(account))
+            {
+                return Forbid();
+            }
+
             var query = _context.Transactions.Where(t => t.AccountId == accountId);
 
             // 1. Date-range filtering (using TimeStamp with capital S)
@@ -309,13 +438,55 @@ namespace BankService.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            // Return paginated response
+            // =====================================================
+            // ORIGINAL IMPLEMENTATION - MEMBER 2 (REFERENCE ONLY)
+            //
+            // Originally returned Entity Framework Transaction
+            // objects directly.
+            //
+            // PART B INTEGRATION ISSUE:
+            // Transaction entities contain navigation properties
+            // such as Account and TargetAccount.
+            //
+            // Serializing these relationships can create cycles:
+            // Transaction -> Account -> SentTransactions -> ...
+            //
+            // INTEGRATION CORRECTION - MEMBER 1:
+            // Return a flat response without navigation properties,
+            // preserving Member 2's pagination and query logic.
+            // =====================================================
+
+            // return Ok(new
+            // {
+            //     TotalRecords = totalRecords,
+            //     Page = page,
+            //     PageSize = pageSize,
+            //     Data = transactions
+            // });
+
+
+            // =====================================================
+            // PART B INTEGRATION - MEMBER 1 + MEMBER 2
+            // Return transaction data without circular references.
+            // =====================================================
+
+            var transactionData = transactions.Select(t => new
+            {
+                t.Id,
+                t.AccountId,
+                t.TargetAccountId,
+                t.Type,
+                t.Amount,
+                t.Description,
+                t.TimeStamp
+            }).ToList();
+
             return Ok(new
             {
                 TotalRecords = totalRecords,
                 Page = page,
                 PageSize = pageSize,
-                Data = transactions
+                Data = transactionData
             });
         }
             

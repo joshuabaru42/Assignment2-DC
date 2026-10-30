@@ -9,8 +9,8 @@
 
     <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-    <form asp-action="Transfer" method="post">
-        <input type="hidden" name="accountId" value="@accountId" />
+    <form asp-action="Transfer" method="post" asp-antiforgery="true">
+        <input type="hidden" name="fromAccountId" value="@accountId" />
 
         <div class="mb-3">
             <label class="form-label fw-bold">Recipient Account Number</label>
