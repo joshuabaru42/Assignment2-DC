@@ -1,0 +1,117 @@
+﻿
+@model BankWebApp.Models.EditProfileViewModel
+
+@{
+    // =====================================================
+    // MEMBER 1 - PART B REQUIREMENTS 2 AND 3
+    // Customer profile editing page.
+    //
+    // Displays only the editable contact fields defined
+    // by Part A's UserUpdateDto.
+    //
+    // SECURITY:
+    // - No editable customer ID is included.
+    // - No Role or IsActive fields are submitted.
+    // - The form includes antiforgery protection.
+    //
+    // Reference:
+    // https://learn.microsoft.com/en-us/aspnet/core/mvc/views/working-with-forms
+    // =====================================================
+
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+
+                    <h2 class="mb-2">Edit Profile</h2>
+                    <p class="text-muted mb-4">
+                        Update your personal and contact information.
+                    </p>
+
+                    <form asp-controller="Profile"
+                          asp-action="Edit"
+                          method="post">
+
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Name"
+                                   class="form-label"></label>
+
+                            <input asp-for="Name"
+                                   class="form-control"
+                                   autocomplete="name" />
+
+                            <span asp-validation-for="Name"
+                                  class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email"
+                                   class="form-label"></label>
+
+                            <input asp-for="Email"
+                                   class="form-control"
+                                   autocomplete="email" />
+
+                            <span asp-validation-for="Email"
+                                  class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Address"
+                                   class="form-label"></label>
+
+                            <input asp-for="Address"
+                                   class="form-control"
+                                   autocomplete="street-address" />
+
+                            <span asp-validation-for="Address"
+                                  class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Phone"
+                                   class="form-label"></label>
+
+                            <input asp-for="Phone"
+                                   class="form-control"
+                                   autocomplete="tel" />
+
+                            <span asp-validation-for="Phone"
+                                  class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit"
+                                    class="btn btn-primary">
+                                Save Changes
+                            </button>
+
+                            <a asp-controller="Profile"
+                               asp-action="Me"
+                               class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

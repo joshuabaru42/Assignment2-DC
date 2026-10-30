@@ -1,0 +1,98 @@
+﻿@model BankWebApp.Models.LoginViewModel
+
+@{
+    // =====================================================
+    // MEMBER 1 - PART B REQUIREMENT 1
+    // Customer login page.
+    //
+    // Uses MVC Tag Helpers for form binding and validation.
+    // Includes antiforgery protection for the POST request.
+    //
+    // Reference:
+    // https://learn.microsoft.com/en-us/aspnet/core/mvc/views/working-with-forms
+    // =====================================================
+
+    ViewData["Title"] = "Sign In";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-8">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+
+                    <h2 class="mb-2">Welcome Back</h2>
+
+                    <p class="text-muted mb-4">
+                        Sign in to access your banking account.
+                    </p>
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @TempData["SuccessMessage"]
+                        </div>
+                    }
+
+                    <form asp-controller="Auth"
+                          asp-action="Login"
+                          method="post">
+
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Username"
+                                   class="form-label"></label>
+
+                            <input asp-for="Username"
+                                   class="form-control"
+                                   autocomplete="username" />
+
+                            <span asp-validation-for="Username"
+                                  class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Password"
+                                   class="form-label"></label>
+
+                            <input asp-for="Password"
+                                   class="form-control"
+                                   autocomplete="current-password" />
+
+                            <span asp-validation-for="Password"
+                                  class="text-danger"></span>
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary w-100">
+                            Sign In
+                        </button>
+
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <span class="text-muted">
+                            Don't have an account?
+                        </span>
+
+                        <a asp-controller="Auth"
+                           asp-action="Register">
+                            Create an account
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

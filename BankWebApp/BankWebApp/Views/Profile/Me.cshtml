@@ -1,0 +1,198 @@
+﻿
+@model BankWebApp.Models.UserProfileViewModel
+
+@{
+    // =====================================================
+    // MEMBER 1 - PART B REQUIREMENTS 2 AND 3
+    // Customer profile details page.
+    //
+    // SECURITY:
+    // - Profile data is loaded by the authenticated MVC
+    //   controller through the Part A Web API.
+    // - Customer identity comes from authentication claims.
+    // - The API authentication cookie stays server-side.
+    // - Profile images use the protected Picture action.
+    //
+    // Reference:
+    // https://learn.microsoft.com/en-us/aspnet/core/mvc/views/overview
+    // =====================================================
+
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+
+                    @* =========================================
+                       MEMBER 1 - PART B REQUIREMENT 3
+                       Customer profile picture.
+
+                       The picture is retrieved through the
+                       authenticated MVC Picture endpoint.
+                       ========================================= *@
+
+                    @if (!string.IsNullOrWhiteSpace(Model.PicturePath))
+                    {
+                        <div class="text-center mb-4">
+                            <img src="@Url.Action("Picture", "Profile")"
+                                 alt="My profile picture"
+                                 class="rounded-circle border shadow-sm"
+                                 style="width: 140px;
+                                        height: 140px;
+                                        object-fit: cover;" />
+
+                            <p class="text-muted small mt-2 mb-0">
+                                My Profile Picture
+                            </p>
+                        </div>
+                    }
+
+                    @* =========================================
+                       Profile heading and account status.
+                       ========================================= *@
+
+                    <div class="d-flex justify-content-between
+                                align-items-center flex-wrap gap-2 mb-4">
+
+                        <div>
+                            <h2 class="mb-1">My Profile</h2>
+                            <p class="text-muted mb-0">
+                                View your personal and contact information.
+                            </p>
+                        </div>
+
+                        <div>
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">
+                                    Inactive
+                                </span>
+                            }
+                        </div>
+
+                    </div>
+
+                    @* =========================================
+                       MEMBER 1 - PART B REQUIREMENT 3
+                       Read-only customer profile information.
+                       ========================================= *@
+
+                    <div class="row g-4">
+
+                        <div class="col-md-6">
+                            <label class="text-muted d-block mb-1">
+                                Username
+                            </label>
+
+                            <div class="fw-semibold">
+                                @Model.Username
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="text-muted d-block mb-1">
+                                Full Name
+                            </label>
+
+                            <div class="fw-semibold">
+                                @Model.Name
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="text-muted d-block mb-1">
+                                Email Address
+                            </label>
+
+                            <div class="fw-semibold">
+                                @Model.Email
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="text-muted d-block mb-1">
+                                Phone Number
+                            </label>
+
+                            <div class="fw-semibold">
+                                @Model.Phone
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="text-muted d-block mb-1">
+                                Address
+                            </label>
+
+                            <div class="fw-semibold">
+                                @Model.Address
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="text-muted d-block mb-1">
+                                Account Role
+                            </label>
+
+                            <div class="fw-semibold">
+                                @Model.Role
+                            </div>
+                        </div>
+
+                    </div>
+
+                    @* =========================================
+                       MEMBER 1 - PART B REQUIREMENT 3
+                       Profile action buttons.
+
+                       All actions appear in one flex container.
+                       On smaller screens, Bootstrap wraps them
+                       automatically without breaking the layout.
+                       ========================================= *@
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex flex-wrap gap-2">
+
+                        <a asp-controller="Profile"
+                           asp-action="Edit"
+                           class="btn btn-primary">
+                            Edit Profile
+                        </a>
+
+                        <a asp-controller="Profile"
+                           asp-action="UploadPicture"
+                           class="btn btn-outline-primary">
+                            Upload Picture
+                        </a>
+
+                        <a asp-controller="Profile"
+                           asp-action="ChangePassword"
+                           class="btn btn-outline-warning">
+                            Change Password
+                        </a>
+
+                        <a asp-controller="Home"
+                           asp-action="Index"
+                           class="btn btn-outline-secondary">
+                            Back to Home
+                        </a>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

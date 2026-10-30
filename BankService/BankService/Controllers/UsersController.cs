@@ -944,6 +944,135 @@ namespace BankService.Controllers
             return PhysicalFile(filePath, contentType);
         }
 
+        // =====================================================
+        // MEMBER 1 - PART B REQUIREMENT 3
+        // CHANGE CUSTOMER PASSWORD
+        // =====================================================
+        //
+        // Purpose:
+        // Allow an authenticated customer to update their
+        // password through the existing Part A API.
+        //
+        // The MVC profile page will call this endpoint
+        // using RestSharp.
+        //
+        // Security:
+        // - Only the account owner can change the password.
+        // - The existing password must be verified.
+        // - A fresh salted hash is generated.
+        // - Password hashes and salts are never returned.
+        //
+        // Lecturer reference:
+        // WebAP (2).pdf - REST API controllers.
+        //
+        // External reference:
+        // Microsoft Learn - ASP.NET Core authorization
+        // https://learn.microsoft.com/en-us/aspnet/core/security/authorization/simple
+        // =====================================================
+
+        [HttpPut("{id:int}/password")]
+        public async Task<IActionResult> ChangePassword(
+            int id,
+            [FromBody] ChangePasswordDto request)
+        {
+            // STEP 1 - Require authentication.
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return Unauthorized(new
+                {
+                    error = "UNAUTHORIZED",
+                    message = "Authentication is required.",
+                    details = (object?)null
+                });
+            }
+
+            // STEP 2 - Only the account owner can change
+            // their password, even if the caller is Admin.
+            string? authenticatedId =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(authenticatedId, out int currentUserId)
+                || currentUserId != id)
+            {
+                return StatusCode(403, new
+                {
+                    error = "FORBIDDEN",
+                    message = "You cannot change this password.",
+                    details = (object?)null
+                });
+            }
+
+            // STEP 3 - Find the requested user.
+            var user = await _context.Users.FindAsync(id);
+
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    error = "USER_NOT_FOUND",
+                    message = "User does not exist.",
+                    details = (object?)null
+                });
+            }
+
+            // Reject changes to deactivated accounts.
+            if (!user.IsActive)
+            {
+                return StatusCode(403, new
+                {
+                    error = "USER_INACTIVE",
+                    message = "This account is deactivated.",
+                    details = (object?)null
+                });
+            }
+
+            // STEP 4 - Verify the current password.
+            bool validCurrentPassword =
+                _passwordService.VerifyPassword(
+                    request.CurrentPassword,
+                    user.PasswordHash,
+                    user.PasswordSalt);
+
+            if (!validCurrentPassword)
+            {
+                return BadRequest(new
+                {
+                    error = "INVALID_CURRENT_PASSWORD",
+                    message = "Current password is incorrect.",
+                    details = (object?)null
+                });
+            }
+
+            // STEP 5 - Reject the existing password.
+            if (_passwordService.VerifyPassword(
+                    request.NewPassword,
+                    user.PasswordHash,
+                    user.PasswordSalt))
+            {
+                return BadRequest(new
+                {
+                    error = "PASSWORD_UNCHANGED",
+                    message = "New password must be different.",
+                    details = (object?)null
+                });
+            }
+
+            // STEP 6 - Generate a new salt and hash.
+            var (hash, salt) =
+                _passwordService.HashPassword(request.NewPassword);
+
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
+
+            // STEP 7 - Save the new credentials.
+            await _context.SaveChangesAsync();
+
+            // Never expose the stored password data.
+            return Ok(new
+            {
+                message = "Password changed successfully."
+            });
+        }
 
 
         // -------------------------------------------------
