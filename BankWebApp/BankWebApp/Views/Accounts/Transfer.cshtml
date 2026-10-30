@@ -1,0 +1,35 @@
+﻿@{
+    ViewData["Title"] = "Transfer Funds";
+    var accountId = ViewBag.AccountId;
+}
+
+<div class="container mt-4" style="max-width: 600px;">
+    <h2>Transfer Funds</h2>
+    <hr />
+
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+    <form asp-action="Transfer" method="post">
+        <input type="hidden" name="accountId" value="@accountId" />
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Recipient Account Number</label>
+            <input type="text" name="toAccountNumber" class="form-control" placeholder="e.g. ACC10002" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Amount ($)</label>
+            <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required min="0.01" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Description</label>
+            <input type="text" name="description" class="form-control" value="Fund Transfer" />
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a asp-action="Transactions" asp-route-accountId="@accountId" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-info text-white">Confirm Transfer</button>
+        </div>
+    </form>
+</div>

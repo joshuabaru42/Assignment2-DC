@@ -1,0 +1,28 @@
+﻿@{
+    ViewData["Title"] = "Withdraw Funds";
+    var accountId = ViewBag.AccountId;
+}
+
+<div class="container mt-4" style="max-width: 600px;">
+    <h2>Withdraw Funds</h2>
+    <hr />
+
+    <form asp-action="Withdraw" method="post">
+        <input type="hidden" name="accountId" value="@accountId" />
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Amount ($)</label>
+            <input type="number" step="0.01" name="amount" class="form-control" required min="0.01" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Description</label>
+            <input type="text" name="description" class="form-control" value="ATM Withdrawal" />
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a asp-action="Transactions" asp-route-accountId="@accountId" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-warning">Confirm Withdrawal</button>
+        </div>
+    </form>
+</div>
