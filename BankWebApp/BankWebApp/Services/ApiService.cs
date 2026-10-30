@@ -7,7 +7,8 @@ namespace BankWebApp.Services
     {
         private readonly RestClient _client;
 
-        public ApiService(IConfiguration configuration) {
+        public ApiService(IConfiguration configuration)
+        {
 
             var baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7045";
             _client = new RestClient(baseUrl);
@@ -422,8 +423,41 @@ namespace BankWebApp.Services
 
             var response = await _client.ExecuteAsync<PagedResult<Transaction>>(request);
             return response.Data ?? new PagedResult<Transaction>();
+        }
 
-        }       
+        // Deposit funds into an account
+        public async Task<bool> DepositAsync(int accountId, decimal amount, string description)
+        {
+            var request = new RestRequest($"api/transactions/deposit", Method.Post);
+            request.AddJsonBody(new { AccountId = accountId, Amount = amount, Description = description });
+            var response = await _client.ExecuteAsync(request);
+            return response.IsSuccessful;
+        }
+
+        // Withdraw funds from an account
+        public async Task<bool> WithdrawAsync(int accountId, decimal amount, string description)
+        {
+            var request = new RestRequest($"api/transactions/withdraw", Method.Post);
+            request.AddJsonBody(new { AccountId = accountId, Amount = amount, Description = description });
+            var response = await _client.ExecuteAsync(request);
+            return response.IsSuccessful;
+        }
+
+        // Transfer funds between two accounts
+        public async Task<bool> TransferAsync(int fromAccountId, string toAccountNumber, decimal amount, string description)
+        {
+            var request = new RestRequest("api/transactions/transfer", Method.Post);
+            request.AddJsonBody(new
+            {
+                FromAccountId = fromAccountId,
+                ToAccountNumber = toAccountNumber,
+                Amount = amount,
+                Description = description
+            });
+
+            var response = await _client.ExecuteAsync(request);
+            return response.IsSuccessful;
+        }
 
         // Member 3: Part B authenticated administrator API integration for
         // user management, transaction oversight, and audit-trail retrieval.
@@ -646,24 +680,6 @@ namespace BankWebApp.Services
         public int TotalRecords { get; set; }
         public int Page { get; set; }
         public int PageSize { get; set; }
-
-        // =====================================================
-        // MEMBER 1 - PART B: BUILD WARNING RESOLUTION
-        //
-        // Fixed compiler warning CS8618:
-        // "Non-nullable property 'Data' must contain a
-        // non-null value when exiting constructor."
-        //
-        // Previously, Data was declared without an initial
-        // value, which could leave the collection null.
-        //
-        // Initialising Data with an empty List<T> ensures
-        // the property is non-null when a PagedResult<T>
-        // object is created.
-        //
-        // This preserves Member 2's original data structure
-        // while resolving the nullable reference warning.
-        // =====================================================
 
         public List<T> Data { get; set; } = new();
     }

@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "..\\BankService\\BankService\\BankService.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "BankWebApp\\BankWebApp.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

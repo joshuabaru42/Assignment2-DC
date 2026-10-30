@@ -1,0 +1,168 @@
+﻿@model BankWebApp.Services.PagedResult<BankWebApp.Models.Transaction>
+
+@{
+    ViewData["Title"] = "Transaction History";
+    var accountId = ViewBag.AccountId;
+    var currentSortBy = ViewBag.SortBy as string ?? "date";
+    var currentSortOrder = ViewBag.SortOrder as string ?? "desc";
+    var currentStartDate = ViewBag.StartDate as string;
+    var currentEndDate = ViewBag.EndDate as string;
+    var currentPageSize = ViewBag.PageSize != null ? (int)ViewBag.PageSize : 10;
+}
+
+<div class="container mt-4">
+    <!-- Header with Action Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Transaction History</h2>
+        <div>
+            <a asp-action="Deposit" asp-route-accountId="@accountId" class="btn btn-success me-2">+ Deposit</a>
+            <a asp-action="Withdraw" asp-route-accountId="@accountId" class="btn btn-warning me-2">- Withdraw</a>
+            <a asp-action="Transfer" asp-route-accountId="@accountId" class="btn btn-info text-white me-2">⇄ Transfer</a>
+            <a asp-action="Dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+    <hr />
+
+    <!-- Success Message Alert -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filter & Sort Controls Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="get" asp-action="Transactions" class="row g-3">
+                <input type="hidden" name="accountId" value="@accountId" />
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Start Date</label>
+                    <input type="date" name="startDate" value="@currentStartDate" class="form-control" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">End Date</label>
+                    <input type="date" name="endDate" value="@currentEndDate" class="form-control" />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Sort By</label>
+                    <select name="sortBy" class="form-select">
+                        <option value="date" selected="@(currentSortBy == "date")">Date</option>
+                        <option value="amount" selected="@(currentSortBy == "amount")">Amount</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Order</label>
+                    <select name="sortOrder" class="form-select">
+                        <option value="desc" selected="@(currentSortOrder == "desc")">Descending</option>
+                        <option value="asc" selected="@(currentSortOrder == "asc")">Ascending</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Per Page</label>
+                    <select name="pageSize" class="form-select">
+                        <option value="5" selected="@(currentPageSize == 5)">5</option>
+                        <option value="10" selected="@(currentPageSize == 10)">10</option>
+                        <option value="20" selected="@(currentPageSize == 20)">20</option>
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+                    <a asp-action="Transactions" asp-route-accountId="@accountId" class="btn btn-outline-secondary">Reset Filters</a>
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <table class="table table-striped align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Description</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Data != null && Model.Data.Any())
+            {
+                foreach (var tx in Model.Data)
+                {
+                    <tr>
+                        <td>@tx.Id</td>
+                        <td>
+                            <span class="badge @(tx.Type == "Deposit" ? "bg-success" : tx.Type == "Withdrawal" ? "bg-warning text-dark" : "bg-info")">
+                                @tx.Type
+                            </span>
+                        </td>
+                        <td>@tx.Amount.ToString("C")</td>
+                        <td>@tx.Description</td>
+                        <td>@tx.TimeStamp.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">No transactions found for this account.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    @{
+        var totalPages = Model.TotalRecords > 0 ? (int)Math.Ceiling((double)Model.TotalRecords / Model.PageSize) : 1;
+    }
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div>
+            @if (Model.Page > 1)
+            {
+                <a asp-action="Transactions"
+                   asp-route-accountId="@accountId"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-pageSize="@Model.PageSize"
+                   asp-route-sortBy="@currentSortBy"
+                   asp-route-sortOrder="@currentSortOrder"
+                   asp-route-startDate="@currentStartDate"
+                   asp-route-endDate="@currentEndDate"
+                   class="btn btn-outline-primary">Previous</a>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary" disabled>Previous</button>
+            }
+        </div>
+
+        <span>Page <strong>@Model.Page</strong> of <strong>@totalPages</strong></span>
+
+        <div>
+            @if (Model.Page < totalPages)
+            {
+                <a asp-action="Transactions"
+                   asp-route-accountId="@accountId"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-pageSize="@Model.PageSize"
+                   asp-route-sortBy="@currentSortBy"
+                   asp-route-sortOrder="@currentSortOrder"
+                   asp-route-startDate="@currentStartDate"
+                   asp-route-endDate="@currentEndDate"
+                   class="btn btn-outline-primary">Next</a>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary" disabled>Next</button>
+            }
+        </div>
+    </div>
+</div>
