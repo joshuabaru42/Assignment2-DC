@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// Member 3: Provides a consistent RFC 9457 error response format.
+// Member 3: Provides consistent structured JSON error responses.
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>

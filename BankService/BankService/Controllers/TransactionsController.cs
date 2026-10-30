@@ -9,6 +9,8 @@ namespace BankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    // Member 3: Part A structured error-response integration for transaction
+    // validation, missing accounts, inactive accounts, and transfer failures.
     public class TransactionsController : ApiControllerBase
     {
         private readonly BankContext _context;

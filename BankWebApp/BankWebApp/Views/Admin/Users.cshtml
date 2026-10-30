@@ -1,4 +1,5 @@
 @model BankWebApp.Models.UserManagementViewModel
+@* Member 3: Part B administrator user search, create, edit, password reset, and activation management. *@
 @{
     ViewData["Title"] = "User Management";
     var previousPage = Math.Max(1, Model.Results.Page - 1);
@@ -6,6 +7,8 @@
 }
 
 <h1>User Management</h1>
+
+<p><a asp-action="CreateUser" class="btn btn-success">Create customer</a></p>
 
 @if (TempData["SuccessMessage"] is string successMessage)
 {
@@ -17,14 +20,14 @@
 }
 
 <form method="get" class="row g-3 mb-3">
-    <div class="col-md-6"><label asp-for="Search" class="form-label">Search</label><input asp-for="Search" class="form-control" placeholder="Username, name, or email" /></div>
+    <div class="col-md-6"><label asp-for="Search" class="form-label">Search</label><input asp-for="Search" class="form-control" placeholder="Username, name, email, or account number" /></div>
     <div class="col-md-3"><label asp-for="IsActive" class="form-label">Status</label><select asp-for="IsActive" class="form-select"><option value="">All</option><option value="true">Active</option><option value="false">Inactive</option></select></div>
     <div class="col-md-3 d-flex align-items-end"><button type="submit" class="btn btn-primary">Filter</button></div>
 </form>
 
 <div class="table-responsive">
     <table class="table table-striped align-middle">
-        <thead><tr><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
         @foreach (var user in Model.Results.Items)
         {
@@ -32,6 +35,8 @@
                 <td>@user.Username</td><td>@user.Name</td><td>@user.Email</td><td>@user.Role</td>
                 <td><span class="badge @(user.IsActive ? "text-bg-success" : "text-bg-secondary")">@(user.IsActive ? "Active" : "Inactive")</span></td>
                 <td>
+                    <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <a asp-action="ResetPassword" asp-route-id="@user.Id" class="btn btn-sm btn-outline-warning">Reset password</a>
                     <form asp-action="UpdateUserStatus" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="UserId" value="@user.Id" />

@@ -8,7 +8,8 @@ using System.Security.Claims;
 
 namespace BankWebApp.Controllers
 {
-    // Member 3: Part B MVC administrator management and oversight.
+    // Member 3: Part B MVC administrator management, transaction oversight,
+    // audit-trail review, and API session/error handling.
     [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
@@ -35,7 +36,7 @@ namespace BankWebApp.Controllers
 
             var usersTask = _apiService.GetAdminUsersAsync(apiCookie, null, null, 1, 1);
             var transactionsTask = _apiService.GetAdminTransactionsAsync(
-                apiCookie, null, null, null, null, 1, 1);
+                apiCookie, null, null, null, null, null, "date", "desc", 1, 1);
             var auditLogsTask = _apiService.GetAuditLogsAsync(
                 apiCookie, null, null, null, null, null, 1, 1);
 
@@ -64,6 +65,145 @@ namespace BankWebApp.Controllers
                 TotalTransactions = transactionsTask.Result.Data.TotalCount,
                 TotalAuditEvents = auditLogsTask.Result.Data.TotalCount
             });
+        }
+
+        [HttpGet]
+        public IActionResult CreateUser() => View(new AdminUserCreateViewModel());
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateUser(AdminUserCreateViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var apiCookie = GetApiCookie();
+            if (apiCookie == null)
+            {
+                return await ExpireSessionAsync();
+            }
+
+            var response = await _apiService.CreateAdminUserAsync(apiCookie, model);
+            if (HasExpiredApiSession(response.StatusCode))
+            {
+                return await ExpireSessionAsync();
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError(string.Empty, response.StatusCode == 409
+                    ? "The username or email is already in use."
+                    : "The user could not be created because the banking service is unavailable.");
+                return View(model);
+            }
+
+            TempData["SuccessMessage"] = "Customer account created.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditUser(int id)
+        {
+            var apiCookie = GetApiCookie();
+            if (apiCookie == null)
+            {
+                return await ExpireSessionAsync();
+            }
+
+            var response = await _apiService.GetUserProfileAsync(id, apiCookie);
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return await ExpireSessionAsync();
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (!response.IsSuccessful || response.Data == null)
+            {
+                return ServiceUnavailable();
+            }
+
+            return View(new AdminUserEditViewModel
+            {
+                Id = response.Data.Id,
+                Username = response.Data.Username,
+                Name = response.Data.Name,
+                Email = response.Data.Email,
+                Address = response.Data.Address,
+                Phone = response.Data.Phone
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditUser(AdminUserEditViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var apiCookie = GetApiCookie();
+            if (apiCookie == null)
+            {
+                return await ExpireSessionAsync();
+            }
+
+            var response = await _apiService.UpdateAdminUserAsync(apiCookie, model);
+            if (HasExpiredApiSession(response.StatusCode))
+            {
+                return await ExpireSessionAsync();
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError(string.Empty, response.StatusCode == 409
+                    ? "The username or email is already in use."
+                    : "The user could not be updated because the banking service is unavailable.");
+                return View(model);
+            }
+
+            TempData["SuccessMessage"] = "User details updated.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword(int id) => View(new AdminPasswordResetViewModel { UserId = id });
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(AdminPasswordResetViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var apiCookie = GetApiCookie();
+            if (apiCookie == null)
+            {
+                return await ExpireSessionAsync();
+            }
+
+            var response = await _apiService.ResetAdminUserPasswordAsync(apiCookie, model);
+            if (HasExpiredApiSession(response.StatusCode))
+            {
+                return await ExpireSessionAsync();
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError(string.Empty, "The password could not be reset because the banking service is unavailable.");
+                return View(model);
+            }
+
+            TempData["SuccessMessage"] = "User password reset.";
+            return RedirectToAction(nameof(Users));
         }
 
         [HttpGet]
@@ -145,8 +285,11 @@ namespace BankWebApp.Controllers
         public async Task<IActionResult> Transactions(
             int? accountId,
             string? type,
+            string? search,
             DateTime? fromUtc,
             DateTime? toUtc,
+            string sortBy = "date",
+            string sortDirection = "desc",
             int page = 1)
         {
             var apiCookie = GetApiCookie();
@@ -156,7 +299,7 @@ namespace BankWebApp.Controllers
             }
 
             var response = await _apiService.GetAdminTransactionsAsync(
-                apiCookie, accountId, type, fromUtc, toUtc, page, PageSize);
+                apiCookie, accountId, type, search, fromUtc, toUtc, sortBy, sortDirection, page, PageSize);
             if (HasExpiredApiSession(response.StatusCode))
             {
                 return await ExpireSessionAsync();
@@ -171,8 +314,11 @@ namespace BankWebApp.Controllers
             {
                 AccountId = accountId,
                 Type = type,
+                Search = search,
                 FromUtc = fromUtc,
                 ToUtc = toUtc,
+                SortBy = sortBy,
+                SortDirection = sortDirection,
                 Page = response.Data.Page,
                 Results = response.Data
             });

@@ -2,7 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BankWebApp.Models
 {
-    // Member 3: Part B MVC models for administrator management and oversight.
+    // Member 3: Part B MVC models for administrator user management,
+    // transaction oversight, audit review, filters, and paging.
     public class PagedApiResult<T>
     {
         public IReadOnlyCollection<T> Items { get; set; } = Array.Empty<T>();
@@ -41,6 +42,44 @@ namespace BankWebApp.Models
         public int Page { get; set; } = 1;
     }
 
+    public class AdminUserEditViewModel
+    {
+        [Range(1, int.MaxValue)]
+        public int Id { get; set; }
+
+        [Required, StringLength(100)]
+        public string Username { get; set; } = string.Empty;
+
+        [Required, StringLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [Required, EmailAddress, StringLength(320)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required, StringLength(300)]
+        public string Address { get; set; } = string.Empty;
+
+        [Required, StringLength(50)]
+        public string Phone { get; set; } = string.Empty;
+    }
+
+    public class AdminUserCreateViewModel : AdminUserEditViewModel
+    {
+        [Required, StringLength(200, MinimumLength = 8)]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class AdminPasswordResetViewModel
+    {
+        [Range(1, int.MaxValue)]
+        public int UserId { get; set; }
+
+        [Required, StringLength(200, MinimumLength = 8)]
+        [DataType(DataType.Password)]
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
     public class AdminTransactionViewModel
     {
         public int Id { get; set; }
@@ -60,9 +99,12 @@ namespace BankWebApp.Models
         [Range(1, int.MaxValue)]
         public int? AccountId { get; set; }
 
+        public string? Search { get; set; }
         public string? Type { get; set; }
         public DateTime? FromUtc { get; set; }
         public DateTime? ToUtc { get; set; }
+        public string SortBy { get; set; } = "date";
+        public string SortDirection { get; set; } = "desc";
         public int Page { get; set; } = 1;
         public PagedApiResult<AdminTransactionViewModel> Results { get; set; } = new();
     }

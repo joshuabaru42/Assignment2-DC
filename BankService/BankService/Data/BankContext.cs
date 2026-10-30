@@ -11,7 +11,7 @@ namespace BankService.Data
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Transaction> Transactions  { get; set; }
 
-        // Member 3: Persistent administrator and system audit trail.
+        // Member 3: Persistent audit-trail storage for administrator/system events.
         public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,12 +44,12 @@ namespace BankService.Data
                 .HasForeignKey(t => t.TargetAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Member 3: Active status defaults to true for existing and new users.
+            // Member 3: Defaults new and migrated users to active for access control.
             modelBuilder.Entity<User>()
                 .Property(u => u.IsActive)
                 .HasDefaultValue(true);
 
-            // Member 3: Indexes support efficient audit filtering and review.
+            // Member 3: Indexes make audit filtering and dashboard review efficient.
             modelBuilder.Entity<AuditLog>()
                 .HasIndex(a => a.OccurredAtUtc);
 
