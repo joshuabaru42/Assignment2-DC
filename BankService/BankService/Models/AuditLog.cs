@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BankService.Models
 {
-    // Member 3: Stores persistent audit events for administrator oversight.
+    // Member 3: Stores persistent administrator/system events for audit review.
     public class AuditLog
     {
         [Key]

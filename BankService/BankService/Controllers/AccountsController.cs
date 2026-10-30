@@ -10,6 +10,8 @@ namespace BankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    // Member 3: Part A error-response integration. This controller uses the
+    // shared ProblemDetails helper for account validation and not-found failures.
     public class AccountsController : ApiControllerBase
     {
 
@@ -62,6 +64,7 @@ namespace BankService.Controllers
 
             if (account == null)
             {
+                // Member 3: Return a structured 404 instead of an empty response.
                 return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
             }
 
@@ -87,6 +90,7 @@ namespace BankService.Controllers
 
             if (!userExists)
             {
+                // Member 3: Return a structured validation error for an invalid user.
                 return ApiProblem(
                     StatusCodes.Status422UnprocessableEntity,
                     "Associated user does not exist");
@@ -124,11 +128,13 @@ namespace BankService.Controllers
             var account = await _context.Accounts.FindAsync(id);
             if(account == null)
             {
+                // Member 3: Return a structured 404 for an unknown account.
                 return ApiProblem(StatusCodes.Status404NotFound, "Account not found");
 
             }
             if(account.Balance > 0)
             {
+                // Member 3: Explain why account deactivation is rejected.
                 return ApiProblem(
                     StatusCodes.Status422UnprocessableEntity,
                     "Account cannot be deactivated",

@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BankService.Controllers
 {
-    // Member 3: Centralizes RFC 9457 error responses for API controllers.
+    // Member 3: Centralizes structured JSON errors for API business validation
+    // and missing-resource failures so controllers return consistent responses.
     public abstract class ApiControllerBase : ControllerBase
     {
         protected ObjectResult ApiProblem(int statusCode, string title, string? detail = null)

@@ -1,4 +1,5 @@
 using BankService.Data;
+using BankService.Models;
 using BankService.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,7 @@ namespace BankService.Controllers
         private const int MaximumPageSize = 100;
         private readonly BankContext _context;
         private readonly AuditService _auditService;
+        private readonly PasswordService _passwordService = new();
 
         public AdminController(
             BankContext context,
@@ -49,7 +51,8 @@ namespace BankService.Controllers
                 query = query.Where(user =>
                     user.Username.Contains(searchTerm) ||
                     user.Name.Contains(searchTerm) ||
-                    user.Email.Contains(searchTerm));
+                    user.Email.Contains(searchTerm) ||
+                    user.Accounts.Any(account => account.AccountNumber.Contains(searchTerm)));
             }
 
             if (isActive.HasValue)
@@ -74,6 +77,118 @@ namespace BankService.Controllers
                 .ToListAsync();
 
             return Ok(new PagedResult<UserSearchResultDto>(users, page, pageSize, totalCount));
+        }
+
+        // Member 3: Part B administrator-created customer accounts.
+        [HttpPost("users")]
+        public async Task<ActionResult<UserSearchResultDto>> CreateUser(
+            [FromBody] AdminUserCreateDto request,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+            if (!TryValidateUserDetails(request, out var validationError))
+            {
+                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid user details", detail: validationError);
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+            {
+                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid password", detail: "The password must contain at least 8 characters.");
+            }
+
+            var username = request.Username.Trim();
+            var email = request.Email.Trim();
+            if (await UserIdentityExistsAsync(username, email, null, cancellationToken))
+            {
+                await _auditService.RecordAsync(actorUserId, "UserCreated", "User", null, false, "Username or email is already in use.", cancellationToken);
+                return Problem(statusCode: StatusCodes.Status409Conflict, title: "Username or email is already in use");
+            }
+
+            var (hash, salt) = _passwordService.HashPassword(request.Password);
+            var user = new User
+            {
+                Username = username,
+                Name = request.Name.Trim(),
+                Email = email,
+                Address = request.Address.Trim(),
+                Phone = request.Phone.Trim(),
+                PicturePath = string.Empty,
+                PasswordHash = hash,
+                PasswordSalt = salt,
+                Role = "Customer",
+                IsActive = true
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync(cancellationToken);
+            await _auditService.RecordAsync(actorUserId, "UserCreated", "User", user.Id.ToString(), true, "Administrator created a customer account.", cancellationToken);
+            return CreatedAtAction(nameof(GetUsers), ToUserSearchResult(user));
+        }
+
+        // Member 3: Part B administrator user detail maintenance.
+        [HttpPut("users/{id:int}")]
+        public async Task<ActionResult<UserSearchResultDto>> UpdateUser(
+            int id,
+            [FromBody] AdminUserUpdateDto request,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+            if (!TryValidateUserDetails(request, out var validationError))
+            {
+                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid user details", detail: validationError);
+            }
+
+            var user = await _context.Users.FindAsync([id], cancellationToken);
+            if (user == null)
+            {
+                await _auditService.RecordAsync(actorUserId, "UserUpdated", "User", id.ToString(), false, "The requested user was not found.", cancellationToken);
+                return Problem(statusCode: StatusCodes.Status404NotFound, title: "User not found");
+            }
+
+            var username = request.Username.Trim();
+            var email = request.Email.Trim();
+            if (await UserIdentityExistsAsync(username, email, id, cancellationToken))
+            {
+                await _auditService.RecordAsync(actorUserId, "UserUpdated", "User", id.ToString(), false, "Username or email is already in use.", cancellationToken);
+                return Problem(statusCode: StatusCodes.Status409Conflict, title: "Username or email is already in use");
+            }
+
+            user.Username = username;
+            user.Name = request.Name.Trim();
+            user.Email = email;
+            user.Address = request.Address.Trim();
+            user.Phone = request.Phone.Trim();
+            await _context.SaveChangesAsync(cancellationToken);
+            await _auditService.RecordAsync(actorUserId, "UserUpdated", "User", user.Id.ToString(), true, "Administrator updated user details.", cancellationToken);
+            return Ok(ToUserSearchResult(user));
+        }
+
+        // Member 3: Part B administrator-set password reset.
+        [HttpPut("users/{id:int}/password")]
+        public async Task<IActionResult> ResetUserPassword(
+            int id,
+            [FromBody] PasswordResetDto request,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+            {
+                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid password", detail: "The new password must contain at least 8 characters.");
+            }
+
+            var user = await _context.Users.FindAsync([id], cancellationToken);
+            if (user == null)
+            {
+                await _auditService.RecordAsync(actorUserId, "UserPasswordReset", "User", id.ToString(), false, "The requested user was not found.", cancellationToken);
+                return Problem(statusCode: StatusCodes.Status404NotFound, title: "User not found");
+            }
+
+            var (hash, salt) = _passwordService.HashPassword(request.NewPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
+            await _context.SaveChangesAsync(cancellationToken);
+            await _auditService.RecordAsync(actorUserId, "UserPasswordReset", "User", user.Id.ToString(), true, "Administrator set a new password.", cancellationToken);
+            return NoContent();
         }
 
         // Member 3: Part B administrator user activation management.
@@ -139,8 +254,11 @@ namespace BankService.Controllers
         public async Task<ActionResult<PagedResult<TransactionOverviewDto>>> GetTransactions(
             [FromQuery] int? accountId,
             [FromQuery] string? type,
+            [FromQuery] string? search,
             [FromQuery] DateTime? fromUtc,
             [FromQuery] DateTime? toUtc,
+            [FromQuery] string? sortBy = "date",
+            [FromQuery] string? sortDirection = "desc",
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
@@ -160,6 +278,14 @@ namespace BankService.Controllers
                     detail: "fromUtc must be earlier than or equal to toUtc.");
             }
 
+            if (!TryNormalizeTransactionSort(sortBy, sortDirection, out var normalizedSortBy, out var descending))
+            {
+                return Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "Invalid transaction sort",
+                    detail: "sortBy must be date, amount, type, or account and sortDirection must be asc or desc.");
+            }
+
             var query = _context.Transactions.AsNoTracking();
 
             if (accountId.HasValue)
@@ -175,6 +301,16 @@ namespace BankService.Controllers
                 query = query.Where(transaction => transaction.Type == transactionType);
             }
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.Trim();
+                query = query.Where(transaction =>
+                    transaction.Description.Contains(searchTerm) ||
+                    transaction.Account.AccountNumber.Contains(searchTerm) ||
+                    transaction.Account.User!.Username.Contains(searchTerm) ||
+                    (transaction.TargetAccount != null && transaction.TargetAccount.AccountNumber.Contains(searchTerm)));
+            }
+
             if (fromUtc.HasValue)
             {
                 query = query.Where(transaction => transaction.TimeStamp >= fromUtc.Value);
@@ -186,9 +322,19 @@ namespace BankService.Controllers
             }
 
             var totalCount = await query.CountAsync();
-            var transactions = await query
-                .OrderByDescending(transaction => transaction.TimeStamp)
-                .ThenByDescending(transaction => transaction.Id)
+            var orderedQuery = (normalizedSortBy, descending) switch
+            {
+                ("amount", true) => query.OrderByDescending(transaction => transaction.Amount).ThenByDescending(transaction => transaction.Id),
+                ("amount", false) => query.OrderBy(transaction => transaction.Amount).ThenBy(transaction => transaction.Id),
+                ("type", true) => query.OrderByDescending(transaction => transaction.Type).ThenByDescending(transaction => transaction.Id),
+                ("type", false) => query.OrderBy(transaction => transaction.Type).ThenBy(transaction => transaction.Id),
+                ("account", true) => query.OrderByDescending(transaction => transaction.Account.AccountNumber).ThenByDescending(transaction => transaction.Id),
+                ("account", false) => query.OrderBy(transaction => transaction.Account.AccountNumber).ThenBy(transaction => transaction.Id),
+                ("date", false) => query.OrderBy(transaction => transaction.TimeStamp).ThenBy(transaction => transaction.Id),
+                _ => query.OrderByDescending(transaction => transaction.TimeStamp).ThenByDescending(transaction => transaction.Id)
+            };
+
+            var transactions = await orderedQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(transaction => new TransactionOverviewDto
@@ -310,6 +456,19 @@ namespace BankService.Controllers
             return true;
         }
 
+        private static bool TryNormalizeTransactionSort(
+            string? sortBy,
+            string? sortDirection,
+            out string normalizedSortBy,
+            out bool descending)
+        {
+            normalizedSortBy = string.IsNullOrWhiteSpace(sortBy) ? "date" : sortBy.Trim().ToLowerInvariant();
+            var normalizedDirection = string.IsNullOrWhiteSpace(sortDirection) ? "desc" : sortDirection.Trim().ToLowerInvariant();
+            descending = normalizedDirection == "desc";
+            return normalizedSortBy is "date" or "amount" or "type" or "account" &&
+                   normalizedDirection is "asc" or "desc";
+        }
+
         private int? GetCurrentUserId()
         {
             return int.TryParse(
@@ -319,6 +478,35 @@ namespace BankService.Controllers
                 : null;
         }
 
+        private async Task<bool> UserIdentityExistsAsync(string username, string email, int? excludedUserId, CancellationToken cancellationToken)
+        {
+            var normalizedUsername = username.ToLower();
+            var normalizedEmail = email.ToLower();
+            return await _context.Users.AnyAsync(user =>
+                (!excludedUserId.HasValue || user.Id != excludedUserId.Value) &&
+                (user.Username.ToLower() == normalizedUsername || user.Email.ToLower() == normalizedEmail), cancellationToken);
+        }
+
+        private static bool TryValidateUserDetails(AdminUserDetailsDto request, out string? error)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Name) ||
+                string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Address) ||
+                string.IsNullOrWhiteSpace(request.Phone))
+            {
+                error = "Username, name, email, address, and phone are required.";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        private static UserSearchResultDto ToUserSearchResult(User user) => new()
+        {
+            Id = user.Id, Username = user.Username, Name = user.Name, Email = user.Email,
+            Role = user.Role, IsActive = user.IsActive
+        };
+
         public sealed class UserSearchResultDto
         {
             public int Id { get; set; }
@@ -327,6 +515,27 @@ namespace BankService.Controllers
             public string Email { get; set; } = string.Empty;
             public string Role { get; set; } = string.Empty;
             public bool IsActive { get; set; }
+        }
+
+        public abstract class AdminUserDetailsDto
+        {
+            public string Username { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public string Address { get; set; } = string.Empty;
+            public string Phone { get; set; } = string.Empty;
+        }
+
+        public sealed class AdminUserCreateDto : AdminUserDetailsDto
+        {
+            public string Password { get; set; } = string.Empty;
+        }
+
+        public sealed class AdminUserUpdateDto : AdminUserDetailsDto { }
+
+        public sealed class PasswordResetDto
+        {
+            public string NewPassword { get; set; } = string.Empty;
         }
 
         public sealed class UserStatusUpdateDto

@@ -425,7 +425,8 @@ namespace BankWebApp.Services
 
         }       
 
-        // Member 3: Part B authenticated administrator API integration.
+        // Member 3: Part B authenticated administrator API integration for
+        // user management, transaction oversight, and audit-trail retrieval.
         public Task<AdminApiResponse<PagedApiResult<AdminUserViewModel>>> GetAdminUsersAsync(
             string apiAuthCookie,
             string? search,
@@ -464,13 +465,58 @@ namespace BankWebApp.Services
             return ExecuteAdminRequestAsync<AdminUserViewModel>(request);
         }
 
+        public Task<AdminApiResponse<AdminUserViewModel>> CreateAdminUserAsync(
+            string apiAuthCookie,
+            AdminUserCreateViewModel model)
+        {
+            var request = CreateAdminRequest("api/admin/users", Method.Post, apiAuthCookie);
+            request.AddJsonBody(new
+            {
+                model.Username,
+                model.Name,
+                model.Email,
+                model.Address,
+                model.Phone,
+                model.Password
+            });
+            return ExecuteAdminRequestAsync<AdminUserViewModel>(request);
+        }
+
+        public Task<AdminApiResponse<AdminUserViewModel>> UpdateAdminUserAsync(
+            string apiAuthCookie,
+            AdminUserEditViewModel model)
+        {
+            var request = CreateAdminRequest($"api/admin/users/{model.Id}", Method.Put, apiAuthCookie);
+            request.AddJsonBody(new
+            {
+                model.Username,
+                model.Name,
+                model.Email,
+                model.Address,
+                model.Phone
+            });
+            return ExecuteAdminRequestAsync<AdminUserViewModel>(request);
+        }
+
+        public Task<AdminApiResponse<object>> ResetAdminUserPasswordAsync(
+            string apiAuthCookie,
+            AdminPasswordResetViewModel model)
+        {
+            var request = CreateAdminRequest($"api/admin/users/{model.UserId}/password", Method.Put, apiAuthCookie);
+            request.AddJsonBody(new { model.NewPassword });
+            return ExecuteAdminRequestAsync<object>(request);
+        }
+
         public Task<AdminApiResponse<PagedApiResult<AdminTransactionViewModel>>>
             GetAdminTransactionsAsync(
                 string apiAuthCookie,
                 int? accountId,
                 string? type,
+                string? search,
                 DateTime? fromUtc,
                 DateTime? toUtc,
+                string sortBy,
+                string sortDirection,
                 int page = 1,
                 int pageSize = 20)
         {
@@ -488,7 +534,14 @@ namespace BankWebApp.Services
                 request.AddQueryParameter("type", type);
             }
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                request.AddQueryParameter("search", search);
+            }
+
             AddDateRange(request, fromUtc, toUtc);
+            request.AddQueryParameter("sortBy", sortBy);
+            request.AddQueryParameter("sortDirection", sortDirection);
             return ExecuteAdminRequestAsync<PagedApiResult<AdminTransactionViewModel>>(request);
         }
 
