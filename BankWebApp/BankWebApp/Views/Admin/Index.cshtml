@@ -1,0 +1,19 @@
+@model BankWebApp.Models.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Administration";
+}
+
+<h1>Administration</h1>
+<p class="text-muted">Manage customer access and review banking activity.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body"><h2 class="h5">Users</h2><p class="display-6">@Model.TotalUsers</p><a asp-action="Users" class="btn btn-primary">Manage users</a></div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body"><h2 class="h5">Transactions</h2><p class="display-6">@Model.TotalTransactions</p><a asp-action="Transactions" class="btn btn-primary">Review transactions</a></div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body"><h2 class="h5">Audit events</h2><p class="display-6">@Model.TotalAuditEvents</p><a asp-action="Audit" class="btn btn-primary">View audit trail</a></div></div>
+    </div>
+</div>

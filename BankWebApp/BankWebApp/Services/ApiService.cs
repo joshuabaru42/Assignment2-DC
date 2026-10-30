@@ -7,7 +7,8 @@ namespace BankWebApp.Services
     {
         private readonly RestClient _client;
 
-        public ApiService(IConfiguration configuration) {
+        public ApiService(IConfiguration configuration)
+        {
 
             var baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7045";
             _client = new RestClient(baseUrl);
@@ -422,15 +423,14 @@ namespace BankWebApp.Services
 
             var response = await _client.ExecuteAsync<PagedResult<Transaction>>(request);
             return response.Data ?? new PagedResult<Transaction>();
+        }
 
-        }    
-        
         // Deposit funds into an account
         public async Task<bool> DepositAsync(int accountId, decimal amount, string description)
         {
             var request = new RestRequest($"api/transactions/deposit", Method.Post);
             request.AddJsonBody(new { AccountId = accountId, Amount = amount, Description = description });
-            var response  = await _client.ExecuteAsync(request);
+            var response = await _client.ExecuteAsync(request);
             return response.IsSuccessful;
         }
 
@@ -458,6 +458,165 @@ namespace BankWebApp.Services
             var response = await _client.ExecuteAsync(request);
             return response.IsSuccessful;
         }
+
+        // Member 3: Part B authenticated administrator API integration.
+        public Task<AdminApiResponse<PagedApiResult<AdminUserViewModel>>> GetAdminUsersAsync(
+            string apiAuthCookie,
+            string? search,
+            bool? isActive,
+            int page = 1,
+            int pageSize = 20)
+        {
+            var request = CreateAdminRequest("api/admin/users", Method.Get, apiAuthCookie);
+            request.AddQueryParameter("page", page);
+            request.AddQueryParameter("pageSize", pageSize);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                request.AddQueryParameter("search", search);
+            }
+
+            if (isActive.HasValue)
+            {
+                request.AddQueryParameter("isActive", isActive.Value);
+            }
+
+            return ExecuteAdminRequestAsync<PagedApiResult<AdminUserViewModel>>(request);
+        }
+
+        public Task<AdminApiResponse<AdminUserViewModel>> UpdateAdminUserStatusAsync(
+            string apiAuthCookie,
+            int userId,
+            bool isActive)
+        {
+            var request = CreateAdminRequest(
+                $"api/admin/users/{userId}/status",
+                Method.Patch,
+                apiAuthCookie);
+            request.AddJsonBody(new { IsActive = isActive });
+
+            return ExecuteAdminRequestAsync<AdminUserViewModel>(request);
+        }
+
+        public Task<AdminApiResponse<PagedApiResult<AdminTransactionViewModel>>>
+            GetAdminTransactionsAsync(
+                string apiAuthCookie,
+                int? accountId,
+                string? type,
+                DateTime? fromUtc,
+                DateTime? toUtc,
+                int page = 1,
+                int pageSize = 20)
+        {
+            var request = CreateAdminRequest("api/admin/transactions", Method.Get, apiAuthCookie);
+            request.AddQueryParameter("page", page);
+            request.AddQueryParameter("pageSize", pageSize);
+
+            if (accountId.HasValue)
+            {
+                request.AddQueryParameter("accountId", accountId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                request.AddQueryParameter("type", type);
+            }
+
+            AddDateRange(request, fromUtc, toUtc);
+            return ExecuteAdminRequestAsync<PagedApiResult<AdminTransactionViewModel>>(request);
+        }
+
+        public Task<AdminApiResponse<PagedApiResult<AuditLogViewModel>>> GetAuditLogsAsync(
+            string apiAuthCookie,
+            int? actorUserId,
+            string? action,
+            string? entityType,
+            DateTime? fromUtc,
+            DateTime? toUtc,
+            int page = 1,
+            int pageSize = 20)
+        {
+            var request = CreateAdminRequest("api/admin/audit-logs", Method.Get, apiAuthCookie);
+            request.AddQueryParameter("page", page);
+            request.AddQueryParameter("pageSize", pageSize);
+
+            if (actorUserId.HasValue)
+            {
+                request.AddQueryParameter("actorUserId", actorUserId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(action))
+            {
+                request.AddQueryParameter("action", action);
+            }
+
+            if (!string.IsNullOrWhiteSpace(entityType))
+            {
+                request.AddQueryParameter("entityType", entityType);
+            }
+
+            AddDateRange(request, fromUtc, toUtc);
+            return ExecuteAdminRequestAsync<PagedApiResult<AuditLogViewModel>>(request);
+        }
+
+        private static RestRequest CreateAdminRequest(
+            string resource,
+            Method method,
+            string apiAuthCookie)
+        {
+            if (string.IsNullOrWhiteSpace(apiAuthCookie))
+            {
+                throw new ArgumentException("An API session is required.", nameof(apiAuthCookie));
+            }
+
+            var request = new RestRequest(resource, method);
+            request.AddCookie("BankService.Auth", apiAuthCookie);
+            return request;
+        }
+
+        private static void AddDateRange(
+            RestRequest request,
+            DateTime? fromUtc,
+            DateTime? toUtc)
+        {
+            if (fromUtc.HasValue)
+            {
+                request.AddQueryParameter("fromUtc", fromUtc.Value.ToUniversalTime().ToString("O"));
+            }
+
+            if (toUtc.HasValue)
+            {
+                request.AddQueryParameter("toUtc", toUtc.Value.ToUniversalTime().ToString("O"));
+            }
+        }
+
+        private async Task<AdminApiResponse<T>> ExecuteAdminRequestAsync<T>(RestRequest request)
+            where T : class
+        {
+            try
+            {
+                var response = await _client.ExecuteAsync<T>(request);
+                return new AdminApiResponse<T>(
+                    response.Data,
+                    (int)response.StatusCode,
+                    response.ResponseStatus == ResponseStatus.Error && (int)response.StatusCode == 0);
+            }
+            catch (Exception exception) when (
+                exception is HttpRequestException or TaskCanceledException)
+            {
+                return new AdminApiResponse<T>(default, 0, true);
+            }
+        }
+    }
+
+    // Member 3: Lets MVC distinguish API authorization failures from service outages.
+    public sealed record AdminApiResponse<T>(
+        T? Data,
+        int StatusCode,
+        bool IsUnavailable)
+        where T : class
+    {
+        public bool IsSuccessStatusCode => StatusCode is >= 200 and < 300;
     }
 
 
@@ -468,24 +627,6 @@ namespace BankWebApp.Services
         public int TotalRecords { get; set; }
         public int Page { get; set; }
         public int PageSize { get; set; }
-
-        // =====================================================
-        // MEMBER 1 - PART B: BUILD WARNING RESOLUTION
-        //
-        // Fixed compiler warning CS8618:
-        // "Non-nullable property 'Data' must contain a
-        // non-null value when exiting constructor."
-        //
-        // Previously, Data was declared without an initial
-        // value, which could leave the collection null.
-        //
-        // Initialising Data with an empty List<T> ensures
-        // the property is non-null when a PagedResult<T>
-        // object is created.
-        //
-        // This preserves Member 2's original data structure
-        // while resolving the nullable reference warning.
-        // =====================================================
 
         public List<T> Data { get; set; } = new();
     }

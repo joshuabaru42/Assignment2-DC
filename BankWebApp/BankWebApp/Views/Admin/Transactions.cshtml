@@ -1,0 +1,32 @@
+@model BankWebApp.Models.TransactionOversightViewModel
+@{
+    ViewData["Title"] = "Transaction Oversight";
+    var previousPage = Math.Max(1, Model.Results.Page - 1);
+    var nextPage = Model.Results.Page + 1;
+}
+
+<h1>Transaction Oversight</h1>
+<form method="get" class="row g-3 mb-3">
+    <div class="col-md-2"><label asp-for="AccountId" class="form-label">Account ID</label><input asp-for="AccountId" class="form-control" /></div>
+    <div class="col-md-2"><label asp-for="Type" class="form-label">Type</label><select asp-for="Type" class="form-select"><option value="">All</option><option>Deposit</option><option>Withdrawal</option><option>Transfer</option></select></div>
+    <div class="col-md-3"><label asp-for="FromUtc" class="form-label">From (UTC)</label><input asp-for="FromUtc" type="datetime-local" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="ToUtc" class="form-label">To (UTC)</label><input asp-for="ToUtc" type="datetime-local" class="form-control" /></div>
+    <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary">Filter</button></div>
+</form>
+
+<div class="table-responsive"><table class="table table-striped table-sm align-middle">
+    <thead><tr><th>Time (UTC)</th><th>Type</th><th>Amount</th><th>Source</th><th>Owner</th><th>Target</th><th>Description</th></tr></thead>
+    <tbody>
+    @foreach (var transaction in Model.Results.Items)
+    {
+        <tr><td>@transaction.TimeStampUtc.ToString("u")</td><td>@transaction.Type</td><td>@transaction.Amount.ToString("C")</td><td>@transaction.AccountNumber</td><td>@transaction.AccountOwner</td><td>@transaction.TargetAccountNumber</td><td>@transaction.Description</td></tr>
+    }
+    </tbody>
+</table></div>
+
+<p class="text-muted">Showing @Model.Results.Items.Count of @Model.Results.TotalCount transactions.</p>
+<nav aria-label="Transaction pages"><ul class="pagination">
+    <li class="page-item @(Model.Results.Page <= 1 ? "disabled" : "")"><a class="page-link" asp-action="Transactions" asp-route-accountId="@Model.AccountId" asp-route-type="@Model.Type" asp-route-fromUtc="@Model.FromUtc" asp-route-toUtc="@Model.ToUtc" asp-route-page="@previousPage">Previous</a></li>
+    <li class="page-item disabled"><span class="page-link">Page @Model.Results.Page</span></li>
+    <li class="page-item @(Model.Results.Page * Model.Results.PageSize >= Model.Results.TotalCount ? "disabled" : "")"><a class="page-link" asp-action="Transactions" asp-route-accountId="@Model.AccountId" asp-route-type="@Model.Type" asp-route-fromUtc="@Model.FromUtc" asp-route-toUtc="@Model.ToUtc" asp-route-page="@nextPage">Next</a></li>
+</ul></nav>

@@ -122,6 +122,18 @@
                                     My Profile
                                 </a>
                             </li>
+
+                            @* MEMBER 3 - PART B: Administrator navigation. *@
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark"
+                                       asp-controller="Admin"
+                                       asp-action="Index">
+                                        Administration
+                                    </a>
+                                </li>
+                            }
                         }
 
                     </ul>

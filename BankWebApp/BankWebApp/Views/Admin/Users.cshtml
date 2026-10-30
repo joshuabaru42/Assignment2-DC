@@ -1,0 +1,56 @@
+@model BankWebApp.Models.UserManagementViewModel
+@{
+    ViewData["Title"] = "User Management";
+    var previousPage = Math.Max(1, Model.Results.Page - 1);
+    var nextPage = Model.Results.Page + 1;
+}
+
+<h1>User Management</h1>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<form method="get" class="row g-3 mb-3">
+    <div class="col-md-6"><label asp-for="Search" class="form-label">Search</label><input asp-for="Search" class="form-control" placeholder="Username, name, or email" /></div>
+    <div class="col-md-3"><label asp-for="IsActive" class="form-label">Status</label><select asp-for="IsActive" class="form-select"><option value="">All</option><option value="true">Active</option><option value="false">Inactive</option></select></div>
+    <div class="col-md-3 d-flex align-items-end"><button type="submit" class="btn btn-primary">Filter</button></div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+        @foreach (var user in Model.Results.Items)
+        {
+            <tr>
+                <td>@user.Username</td><td>@user.Name</td><td>@user.Email</td><td>@user.Role</td>
+                <td><span class="badge @(user.IsActive ? "text-bg-success" : "text-bg-secondary")">@(user.IsActive ? "Active" : "Inactive")</span></td>
+                <td>
+                    <form asp-action="UpdateUserStatus" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="UserId" value="@user.Id" />
+                        <input type="hidden" name="IsActive" value="@(!user.IsActive)" />
+                        <input type="hidden" name="Search" value="@Model.Search" />
+                        <input type="hidden" name="FilterIsActive" value="@Model.IsActive" />
+                        <input type="hidden" name="Page" value="@Model.Results.Page" />
+                        <button type="submit" class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")">@(user.IsActive ? "Deactivate" : "Activate")</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<p class="text-muted">Showing @Model.Results.Items.Count of @Model.Results.TotalCount users.</p>
+<nav aria-label="User pages"><ul class="pagination">
+    <li class="page-item @(Model.Results.Page <= 1 ? "disabled" : "")"><a class="page-link" asp-action="Users" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive" asp-route-page="@previousPage">Previous</a></li>
+    <li class="page-item disabled"><span class="page-link">Page @Model.Results.Page</span></li>
+    <li class="page-item @(Model.Results.Page * Model.Results.PageSize >= Model.Results.TotalCount ? "disabled" : "")"><a class="page-link" asp-action="Users" asp-route-search="@Model.Search" asp-route-isActive="@Model.IsActive" asp-route-page="@nextPage">Next</a></li>
+</ul></nav>
