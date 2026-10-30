@@ -1,5 +1,6 @@
 using BankService.Data;
 using BankService.Models;
+using BankService.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -21,6 +22,10 @@ builder.Services.AddProblemDetails(options =>
 
 builder.Services.AddDbContext<BankContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Member 3: Records administrator management actions in the audit trail.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditService>();
 
 // Member 3: Shared password hashing for seeded users.
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
