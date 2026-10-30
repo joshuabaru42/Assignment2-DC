@@ -7,7 +7,7 @@
     <h2>Withdraw Funds</h2>
     <hr />
 
-    <form asp-action="Withdraw" method="post">
+    <form asp-action="Withdraw" method="post" asp-antiforgery="true">
         <input type="hidden" name="accountId" value="@accountId" />
 
         <div class="mb-3">

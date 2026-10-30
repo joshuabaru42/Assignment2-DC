@@ -67,6 +67,45 @@ namespace BankService.Controllers
             return Ok(responseDtos);
         }
 
+        // GET: api/accounts/user/2
+        // Retrieves accounts belonging to the authenticated user.
+        // Administrators may retrieve accounts belonging to other users.
+        // New code added in by Joshua (Member 1)
+        [HttpGet("user/{userId:int}")]
+        [Authorize]
+        public async Task<IActionResult> GetAccountsByUser(int userId)
+        {
+            var userIdClaim = User.FindFirst(
+                ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            bool isAdmin = User.IsInRole("Admin");
+
+            if (currentUserId != userId && !isAdmin)
+            {
+                return Forbid();
+            }
+
+            var accounts = await _context.Accounts
+                .AsNoTracking()
+                .Where(a => a.UserId == userId)
+                .Select(a => new AccountResponseDto
+                {
+                    Id = a.Id,
+                    AccountNumber = a.AccountNumber,
+                    Balance = a.Balance,
+                    IsActive = a.IsActive,
+                    UserId = a.UserId
+                })
+                .ToListAsync();
+
+            return Ok(accounts);
+        }
+
         // GET: api/accounts/5
         [HttpGet("{id}")]
         public async Task<ActionResult<AccountResponseDto>> GetAccount(int id)

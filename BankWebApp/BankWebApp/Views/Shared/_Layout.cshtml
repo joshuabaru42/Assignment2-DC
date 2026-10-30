@@ -122,6 +122,16 @@
                                     My Profile
                                 </a>
                             </li>
+                            @if (User.Identity?.IsAuthenticated == true)
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark"
+           asp-controller="Accounts"
+           asp-action="Dashboard">
+            My Accounts
+        </a>
+    </li>
+}
 
                             @* MEMBER 3 - PART B: Administrator navigation. *@
                             @if (User.IsInRole("Admin"))
