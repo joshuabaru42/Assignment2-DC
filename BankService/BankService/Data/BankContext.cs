@@ -11,7 +11,14 @@ namespace BankService.Data
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Transaction> Transactions  { get; set; }
 
-        // Member 3: Persistent audit-trail storage for administrator/system events.
+        // =====================================================
+        // MEMBER 3 - PART A: SQLITE AUDIT TRAIL STORAGE
+        // =====================================================
+        // Stores administrator and system audit events.
+        //
+        // References:
+        // https://learn.microsoft.com/ef/core/providers/sqlite/
+        // https://learn.microsoft.com/ef/core/modeling/
         public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,12 +51,14 @@ namespace BankService.Data
                 .HasForeignKey(t => t.TargetAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Member 3: Defaults new and migrated users to active for access control.
+            // MEMBER 3 - PART A: Defaults new and migrated users
+            // to active so access control can use the IsActive flag.
             modelBuilder.Entity<User>()
                 .Property(u => u.IsActive)
                 .HasDefaultValue(true);
 
-            // Member 3: Indexes make audit filtering and dashboard review efficient.
+            // MEMBER 3 - PART A: Indexes support efficient audit
+            // filtering and administrator dashboard review.
             modelBuilder.Entity<AuditLog>()
                 .HasIndex(a => a.OccurredAtUtc);
 

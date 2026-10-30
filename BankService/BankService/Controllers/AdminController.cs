@@ -8,7 +8,16 @@ using System.Security.Claims;
 
 namespace BankService.Controllers
 {
-    // Member 3: Part A protected user-search endpoint.
+    // =====================================================
+    // MEMBER 3 - PART A AND PART B REQUIREMENTS 6, 7 AND 8
+    // =====================================================
+    // Provides protected user search and administrator user
+    // management, transaction oversight, and audit-log review.
+    //
+    // References:
+    // https://learn.microsoft.com/aspnet/core/security/authorization/roles
+    // https://learn.microsoft.com/ef/core/querying/
+    // https://learn.microsoft.com/aspnet/core/web-api/action-return-types
     [ApiController]
     [Route("api/admin")]
     [Authorize(Roles = "Admin")]

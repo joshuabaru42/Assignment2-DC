@@ -2,8 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BankWebApp.Models
 {
-    // Member 3: Part B MVC models for administrator user management,
+    // =====================================================
+    // MEMBER 3 - PART B REQUIREMENTS 6, 7 AND 8
+    // =====================================================
+    // Provides MVC models for administrator user management,
     // transaction oversight, audit review, filters, and paging.
+    //
+    // Reference:
+    // https://learn.microsoft.com/aspnet/core/mvc/models/validation
     public class PagedApiResult<T>
     {
         public IReadOnlyCollection<T> Items { get; set; } = Array.Empty<T>();

@@ -3,7 +3,15 @@ using BankService.Models;
 
 namespace BankService.Services
 {
-    // Member 3: Part B persistent audit recording for administrator actions.
+    // =====================================================
+    // MEMBER 3 - PART B REQUIREMENT 8: AUDIT RECORDING
+    // =====================================================
+    // Saves administrator actions with success details and
+    // the current request correlation identifier.
+    //
+    // References:
+    // https://learn.microsoft.com/ef/core/saving/
+    // https://learn.microsoft.com/aspnet/core/fundamentals/http-context
     public class AuditService
     {
         private readonly BankContext _context;

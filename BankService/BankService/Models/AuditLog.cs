@@ -2,7 +2,15 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BankService.Models
 {
-    // Member 3: Stores persistent administrator/system events for audit review.
+    // =====================================================
+    // MEMBER 3 - PART A: AUDIT LOG MODEL
+    // =====================================================
+    // Stores administrator and system events for persistent
+    // audit-trail review.
+    //
+    // References:
+    // https://learn.microsoft.com/ef/core/modeling/entity-properties
+    // https://learn.microsoft.com/dotnet/api/system.componentmodel.dataannotations
     public class AuditLog
     {
         [Key]

@@ -1,5 +1,9 @@
 @model BankWebApp.Models.AuditTrailViewModel
-@* Member 3: Part B administrator audit-trail filtering and paged review. *@
+@* =====================================================
+   MEMBER 3 - PART B REQUIREMENT 8
+   Administrator audit-trail filtering and paged review.
+   Reference: https://learn.microsoft.com/aspnet/core/mvc/views/tag-helpers/intro
+   ===================================================== *@
 @{
     ViewData["Title"] = "Audit Trail";
     var previousPage = Math.Max(1, Model.Results.Page - 1);

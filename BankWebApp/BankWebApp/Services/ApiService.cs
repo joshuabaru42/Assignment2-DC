@@ -459,8 +459,15 @@ namespace BankWebApp.Services
             return response.IsSuccessful;
         }
 
-        // Member 3: Part B authenticated administrator API integration for
-        // user management, transaction oversight, and audit-trail retrieval.
+        // =====================================================
+        // MEMBER 3 - PART B REQUIREMENTS 6, 7, 8 AND 9
+        // =====================================================
+        // Sends authenticated administrator requests for user
+        // management, transaction oversight, and audit review.
+        //
+        // References:
+        // https://restsharp.dev/docs/usage/request/
+        // https://learn.microsoft.com/dotnet/api/system.net.http.httpclient
         public Task<AdminApiResponse<PagedApiResult<AdminUserViewModel>>> GetAdminUsersAsync(
             string apiAuthCookie,
             string? search,

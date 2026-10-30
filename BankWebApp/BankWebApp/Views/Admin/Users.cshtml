@@ -1,5 +1,10 @@
 @model BankWebApp.Models.UserManagementViewModel
-@* Member 3: Part B administrator user search, create, edit, password reset, and activation management. *@
+@* =====================================================
+   MEMBER 3 - PART B REQUIREMENT 6
+   Administrator user search, creation, editing, password reset,
+   and activation management.
+   Reference: https://learn.microsoft.com/aspnet/core/mvc/views/tag-helpers/intro
+   ===================================================== *@
 @{
     ViewData["Title"] = "User Management";
     var previousPage = Math.Max(1, Model.Results.Page - 1);

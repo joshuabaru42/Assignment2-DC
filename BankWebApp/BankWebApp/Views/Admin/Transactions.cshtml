@@ -1,5 +1,10 @@
 @model BankWebApp.Models.TransactionOversightViewModel
-@* Member 3: Part B cross-user transaction oversight with filtering, search, sorting, and paging. *@
+@* =====================================================
+   MEMBER 3 - PART B REQUIREMENT 7
+   Cross-user transaction oversight with filters, search, sorting,
+   and paging.
+   Reference: https://learn.microsoft.com/aspnet/core/mvc/views/tag-helpers/intro
+   ===================================================== *@
 @{
     ViewData["Title"] = "Transaction Oversight";
     var previousPage = Math.Max(1, Model.Results.Page - 1);

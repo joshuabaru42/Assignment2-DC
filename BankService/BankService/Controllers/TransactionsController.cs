@@ -9,8 +9,15 @@ namespace BankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    // Member 3: Part A structured error-response integration for transaction
-    // validation, missing accounts, inactive accounts, and transfer failures.
+    // =====================================================
+    // MEMBER 3 - PART A: TRANSACTION ERROR-RESPONSE INTEGRATION
+    // =====================================================
+    // Uses structured JSON errors for transaction validation,
+    // missing accounts, inactive accounts, and transfer failures.
+    //
+    // References:
+    // https://learn.microsoft.com/aspnet/core/web-api/handle-errors
+    // https://learn.microsoft.com/aspnet/core/mvc/models/validation
     public class TransactionsController : ApiControllerBase
     {
         private readonly BankContext _context;

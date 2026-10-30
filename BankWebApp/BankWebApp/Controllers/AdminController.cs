@@ -8,8 +8,17 @@ using System.Security.Claims;
 
 namespace BankWebApp.Controllers
 {
-    // Member 3: Part B MVC administrator management, transaction oversight,
-    // audit-trail review, and API session/error handling.
+    // =====================================================
+    // MEMBER 3 - PART B REQUIREMENTS 6, 7, 8 AND 9
+    // =====================================================
+    // Provides administrator user management, transaction
+    // oversight, audit-trail review, and API failure handling.
+    //
+    // References:
+    // https://learn.microsoft.com/aspnet/core/security/authorization/roles
+    // https://learn.microsoft.com/aspnet/core/mvc/controllers/actions
+    // https://learn.microsoft.com/aspnet/core/security/anti-request-forgery
+    // https://learn.microsoft.com/aspnet/core/security/authentication/cookie
     [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {

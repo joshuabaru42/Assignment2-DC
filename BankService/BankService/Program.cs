@@ -13,7 +13,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// Member 3: Provides consistent structured JSON error responses.
+// =====================================================
+// MEMBER 3 - PART A: ERROR, AUTHENTICATION, AND DATABASE STARTUP
+// =====================================================
+// Provides consistent structured JSON errors, cookie-session
+// validation, and migration startup integration.
+//
+// References:
+// https://learn.microsoft.com/aspnet/core/fundamentals/error-handling
+// https://learn.microsoft.com/aspnet/core/security/authentication/cookie
+// https://learn.microsoft.com/ef/core/managing-schemas/migrations/applying
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>

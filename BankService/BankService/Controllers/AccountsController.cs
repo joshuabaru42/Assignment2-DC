@@ -10,8 +10,15 @@ namespace BankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    // Member 3: Part A error-response integration. This controller uses the
-    // shared ProblemDetails helper for account validation and not-found failures.
+    // =====================================================
+    // MEMBER 3 - PART A: ACCOUNT ERROR-RESPONSE INTEGRATION
+    // =====================================================
+    // Uses the shared structured JSON error helper for account
+    // validation and missing-resource failures.
+    //
+    // References:
+    // https://learn.microsoft.com/aspnet/core/web-api/handle-errors
+    // https://learn.microsoft.com/aspnet/core/mvc/models/validation
     public class AccountsController : ApiControllerBase
     {
 
