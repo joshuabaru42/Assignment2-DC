@@ -69,6 +69,14 @@ BankWebApp reads ApiSettings:BaseUrl from BankWebApp/BankWebApp/appsettings.json
 - Administrator: seeduser01 / DemoUser01!2026
 - Customer: seeduser02 / DemoUser02!2026
 
+### Member 2 customer account & transaction capabilities
+
+- Account retrieval and viewing for authenticated customers mapped from Part A.
+- Paginated and filtered transaction history lookup supporting custom page sizes, sorting (by date, amount, type, or account), and date-range filtering.
+- Secure deposit, withdrawal, and inter-account fund transfer operations routed safely via RestSharp requests.
+- Input validation payload mapping and robust HTTP response code handling (distinguishing successful transactions from validation errors or service faults).
+- Seamless integration with `ApiService` for all customer-facing financial operations.
+
 ### Member 3 administrator capabilities
 
 - Dashboard totals for users, transactions, and audit events.

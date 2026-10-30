@@ -1,10 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using BankService;
 using BankService.Data;
-using BankService;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
+using BankService.DTOs;
 using BankService.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Security.Principal;
 
 namespace BankService.Controllers
 {
@@ -154,8 +158,18 @@ namespace BankService.Controllers
             return NoContent();
         }
 
-        // GET: api/accounts/by-number/{accountNumber}
+        // =====================================================
+        // PART A - REQUIREMENT 1
+        //
+        // Retrieve account by custom account number string.
+        // Ensures user owns the account or is an Admin.
+        //
+        // Reference:
+        // https://learn.microsoft.com/en-us/ef/core/querying/
+        // =====================================================
+
         [HttpGet("by-number/{accountNumber}")]
+        [Authorize]
         public async Task<ActionResult<Account>> GetAccountByNumber(string accountNumber)
         {
             var account = await _context.Accounts
@@ -166,27 +180,57 @@ namespace BankService.Controllers
                 return NotFound($"Account with number '{accountNumber}' was not found.");
             }
 
+            // Verify account ownership
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim != null && int.TryParse(userIdClaim, out int currentUserId)) {
+
+                bool isAdmin = User.IsInRole("Admin");
+                if (account.UserId != currentUserId && !isAdmin) {
+
+                    return Forbid();
+                
+                }
+
+            }
+
             return Ok(account);
         }
 
-        // PUT: api/accounts/{id}
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAccount(int id, [FromBody] Account updatedAccount)
-        {
-            if (id != updatedAccount.Id)
-            {
-                return BadRequest("Account ID mismatch.");
-            }
+        // =====================================================
+        // PART A - REQUIREMENT 1
+        // Update account status (prevents direct balance mutations).
+        //
+        // Reference:
+        // https://learn.microsoft.com/en-us/ef/core/saving/concurrency
+        // =====================================================
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateAccount(int id, [FromBody] UpdateAccountDto dto)
+        { 
             var existingAccount = await _context.Accounts.FindAsync(id);
             if (existingAccount == null)
             {
                 return NotFound($"Account with ID {id} was not found.");
             }
 
-            // Update editable fields
-            existingAccount.Balance = updatedAccount.Balance;
-            existingAccount.IsActive = updatedAccount.IsActive;
+            // Verify account ownership
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim != null && int.TryParse(userIdClaim, out int currentUserId))
+            {
+
+                bool isAdmin = User.IsInRole("Admin");
+                if (existingAccount.UserId != currentUserId && !isAdmin)
+                {
+
+                    return Forbid();
+
+                }
+
+            }
+
+            // Update only permitted status fields
+            existingAccount.IsActive = dto.IsActive;
+            
 
             try
             {

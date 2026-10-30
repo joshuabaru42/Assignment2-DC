@@ -396,7 +396,16 @@ namespace BankWebApp.Services
         }
 
 
-        // Get accounts for a specific user
+        // =====================================================
+        // MEMBER 2 - PART B
+        // Retrieve accounts for a specific user via Web API.
+        //
+        // Uses RestSharp to execute GET request for user accounts.
+        //
+        // Reference:
+        // https://restsharp.dev/docs/usage/execute/
+        // =====================================================
+
         public async Task<List<Account>> getAccountsForUserAsync(int userId)
         {
             var request = new RestRequest($"api/accounts/user/{userId}", Method.Get);
@@ -404,7 +413,15 @@ namespace BankWebApp.Services
             return response.Data ?? new List<Account>();
         }
 
-        // Get paginated and filtered transactions for an account
+        // =====================================================
+        // MEMBER 2 - PART B
+        // Get paginated and filtered transactions for an account.
+        //
+        // Uses RestSharp query parameters mapping.
+        //
+        // Reference:
+        // https://restsharp.dev/docs/usage/request/
+        // =====================================================
         public async Task<PagedResult<Transaction>> GetTransactionsAsync(
 
             int accountId, int page = 1, int pageSize = 10,
@@ -425,7 +442,15 @@ namespace BankWebApp.Services
             return response.Data ?? new PagedResult<Transaction>();
         }
 
-        // Deposit funds into an account
+        // =====================================================
+        // MEMBER 2 - PART B
+        // Deposit funds into an account.
+        //
+        // Uses RestSharp JSON body payload for POST request.
+        //
+        // Reference:
+        // https://restsharp.dev/docs/usage/request/
+        // =====================================================
         public async Task<bool> DepositAsync(int accountId, decimal amount, string description)
         {
             var request = new RestRequest($"api/transactions/deposit", Method.Post);
@@ -434,7 +459,15 @@ namespace BankWebApp.Services
             return response.IsSuccessful;
         }
 
-        // Withdraw funds from an account
+        // =====================================================
+        // MEMBER 2 - PART B
+        // Withdraw funds from an account.
+        //
+        // Uses RestSharp JSON body payload for POST request.
+        //
+        // Reference:
+        // https://restsharp.dev/docs/usage/request/
+        // =====================================================
         public async Task<bool> WithdrawAsync(int accountId, decimal amount, string description)
         {
             var request = new RestRequest($"api/transactions/withdraw", Method.Post);
@@ -443,7 +476,15 @@ namespace BankWebApp.Services
             return response.IsSuccessful;
         }
 
-        // Transfer funds between two accounts
+        // =====================================================
+        // MEMBER 2 - PART B
+        // Transfer funds between two accounts.
+        //
+        // Uses RestSharp JSON body payload for POST request.
+        //
+        // Reference:
+        // https://restsharp.dev/docs/usage/request/
+        // =====================================================
         public async Task<bool> TransferAsync(int fromAccountId, string toAccountNumber, decimal amount, string description)
         {
             var request = new RestRequest("api/transactions/transfer", Method.Post);
